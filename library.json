@@ -1,0 +1,20 @@
+{
+  "name": "Isolated-EC-Probe-Interface",
+  "keywords": "EC, Conductivity, hydroponics, salinity, ppt, psu, tds, ppm, galvanic, isolation",
+  "description": "Measures Electrical Conductivity, Total Dissolved Solids, and Salinity",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/u-fire/ECSalinity.git"
+  },
+  "authors": [
+    {
+      "name": "Justin Decker",
+      "email": "justin@ufire.co",
+      "url": "http://ufire.co",
+      "maintainer": true
+    }
+  ],
+  "version": "1.0.0",
+  "frameworks": "arduino",
+  "platforms": "*"
+}
