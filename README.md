@@ -1,25 +1,28 @@
-[![GitHub release](https://img.shields.io/github/release/u-fire/ECSalinity.svg)]()
+[![GitHub release](https://img.shields.io/github/release/u-fire/Isolated_EC.svg)]()
 
-### EC-Salinity Probe Interface
+### Isolated EC Probe Interface
 
-> Monitor hydroponic nutrient levels or salinity in aquariums, pools, and soil.
+> Monitor hydroponic nutrient levels or salinity in pools.
+ - Electrical Conductivity in Siemens (0.5 - 20.0 mS/cm)
+ - Total Dissolved Solids in PPM (250 - 100,000 PPM)
+ - Salinity in PSU (2 - 12 PSU)
+ - Temperature in Celsius/Fahrenheit (-55 - 125 C)
+ - Electrically Isolated
+##### What it is
 
-- Electrical Conductivity in Siemens
-- Total Dissolved Solids in PPM
-- Salinity in PSU and PPT
-- Temperature in Celsius/Fahrenheit
+An electrically isolated I2C sensor device, a waterproof temperature sensor, and an electrical conductivity probe. It measures the conductivity of a solution and converts it into Siemens (S) total dissolved solids and salinity. The firmware allows for single or dual-point calibration with temperature compensation.
 
-#### What it is
+The board uses the [Qwiic](https://www.sparkfun.com/qwiic) Connect System for wiring, it's an easy-to-use, polarized, push-to-fit connector. No more mistaken connections or soldering header pins. 
 
-An I2C sensor device, an optional DS18B20 waterproof temperature probe, and a two-electrode EC probe. It measures the conductivity of a solution and converts it into Siemens (S). From that value, it derives total dissolved solids and salinity.
+##### Using it
 
-#### Using it
+Read the [documentation](/docs/uFire_EC/) on the [specifications](/docs/uFire_EC/#characteristics), [setup](/docs/uFire_EC/#getting-started), and [use](/docs/uFire_EC/#use) of the device.
 
-There is extensive [documentation](http://ufire.co/ECSalinity/) on the [specifications](http://ufire.co/ECSalinity/#characteristics), [setup](http://ufire.co/ECSalinity/#getting-started), and [use](http://ufire.co/ECSalinity/#use) of the device. The library to use it is in the Arduino and Particle.io IDE; a python implementation for Raspberry Pi and MicroPython is also available.
+The library to use it is in the Arduino and Particle.io IDE. A [python](https://github.com/u-fire/Isolated_EC/tree/master/python/RaspberryPi) and [rust](https://crates.io/crates/ufire_ec) implementation for Raspberry Pi is available. There is also a [MicroPython](https://github.com/u-fire/Isolated_EC/tree/master/python/MicroPython) library.
 
 ```
-#include <ECSalinity.h>
-EC_Salinity ec;
+#include <uFire_EC.h>
+uFire_EC ec;
 ec.measureEC();
 ```
 
