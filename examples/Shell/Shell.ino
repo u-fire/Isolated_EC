@@ -3,8 +3,9 @@
    github.com/u-fire for feature requests, bug reports, and  questions
    questions@ufire.co to get in touch with someone
 
-   This example is compatible with hardware version 1, firmware version 1.
-
+   This example is compatible with Isolated EC Probe Interface
+   hardware version 1, firmware version 1.
+   
    This allows you to run various functions on a command-line like interface.
    Enter:
     `config` to see the configuration of the device.

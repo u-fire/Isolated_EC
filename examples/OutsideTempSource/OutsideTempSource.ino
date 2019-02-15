@@ -3,8 +3,9 @@
    github.com/u-fire for feature requests, bug reports, and  questions
    questions@ufire.co to get in touch with someone
 
-   This example is compatible with hardware version 1, firmware version 1.
-
+   This example is compatible with Isolated EC Probe Interface
+   hardware version 1, firmware version 1.
+   
    It demonstrates the minimal amount of code and setup to take a reading
    using temperature compensation and an outside source of temperature.
  */
