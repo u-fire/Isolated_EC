@@ -1,8 +1,8 @@
-EC_Salinity Probe Interface
+Isolated EC Probe Interface
 ---------------------------
 
 Documentation for the device can be found here:
-http://ufire.co/ECSalinity/
+http://ufire.co/docs/uFire_EC/
 
 This library was tested on the Photon platform.
 

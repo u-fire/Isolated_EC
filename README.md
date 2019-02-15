@@ -8,6 +8,7 @@
  - Salinity in PSU (2 - 12 PSU)
  - Temperature in Celsius/Fahrenheit (-55 - 125 C)
  - Electrically Isolated
+ 
 ##### What it is
 
 An electrically isolated I2C sensor device, a waterproof temperature sensor, and an electrical conductivity probe. It measures the conductivity of a solution and converts it into Siemens (S) total dissolved solids and salinity. The firmware allows for single or dual-point calibration with temperature compensation.
