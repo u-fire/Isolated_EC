@@ -100,17 +100,6 @@ void uFire_EC_BLE::startBLE() {
   plow_read_Characteristic->setCallbacks(new lowReadCallback());
   pService->addCharacteristic(plow_read_Characteristic);
 
-  // add dual point characteristic
-  pdp_Characteristic = pService->createCharacteristic(
-    DUAL_POINT_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
-    );
-  BLEDescriptor *dp_Descriptor = new BLEDescriptor((uint16_t)0x2901);
-  dp_Descriptor->setValue("dual point");
-  pdp_Characteristic->addDescriptor(dp_Descriptor);
-  pdp_Characteristic->setCallbacks(new dpCallback());
-  pService->addCharacteristic(pdp_Characteristic);
-
   // temp. comp.
   ptc_Characteristic = pService->createCharacteristic(
     TEMP_COMP_UUID,
@@ -121,6 +110,17 @@ void uFire_EC_BLE::startBLE() {
   ptc_Characteristic->addDescriptor(tc_Descriptor);
   ptc_Characteristic->setCallbacks(new tcCallback());
   pService->addCharacteristic(ptc_Characteristic);
+
+  // add dual point characteristic
+  pdp_Characteristic = pService->createCharacteristic(
+    DUAL_POINT_UUID,
+    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
+    );
+  BLEDescriptor *dp_Descriptor = new BLEDescriptor((uint16_t)0x2901);
+  dp_Descriptor->setValue("dual point");
+  pdp_Characteristic->addDescriptor(dp_Descriptor);
+  pdp_Characteristic->setCallbacks(new dpCallback());
+  pService->addCharacteristic(pdp_Characteristic);
 
   // add version chracteristic
   pversion_Characteristic = pService->createCharacteristic(
@@ -141,14 +141,14 @@ void uFire_EC_BLE::startBLE() {
 }
 
 void uFire_EC_BLE::measureEC() {
-  String smV = String(EC_Salinity::measureEC());
+  String smV = String(uFire_EC::measureEC());
 
   pmS_Characteristic->setValue(smV.c_str());
   pmS_Characteristic->notify();
 }
 
 void uFire_EC_BLE::measureTemp() {
-  String s = String(EC_Salinity::measureTemp());
+  String s = String(uFire_EC::measureTemp());
 
   ptemp_Characteristic->setValue(s.c_str());
   ptemp_Characteristic->notify();

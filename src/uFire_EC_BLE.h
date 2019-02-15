@@ -14,6 +14,7 @@
 #define EC_UUID "ca0331f9-e237-4f81-b9d4-6b2facabfceb"
 #define TEMP_UUID "aee115cf-26f0-4096-8914-686b32f123fd"
 
+#define K_UUID "15e657ad-9e9f-4a59-ab2e-fad0f63285a4"
 #define OFFSET_UUID "097335d9-60dd-4194-b606-2fdcb9c37330"
 #define HIGH_REF_UUID "1dadca6b-3ecc-41bd-a116-f77248975310"
 #define HIGH_READ_UUID "e5c4e636-85d9-4da2-a39b-82b5364ea103"
@@ -33,55 +34,131 @@ public:
   }
 };
 
-class mSCallback : public BLECharacteristicCallbacks, EC_Salinity {
+class mSCallback : public BLECharacteristicCallbacks, uFire_EC {
   void onRead(BLECharacteristic *pCharacteristic) {
-    String smV = String(EC_Salinity::measureEC());
+    String smV = String(uFire_EC::measureEC());
 
     pCharacteristic->setValue(smV.c_str());
     pCharacteristic->notify();
   }
 };
 
-class tempCallback : public BLECharacteristicCallbacks, EC_Salinity {
+class tempCallback : public BLECharacteristicCallbacks, uFire_EC {
   void onRead(BLECharacteristic *pCharacteristic) {
-    String s = String(EC_Salinity::measureTemp());
+    String s = String(uFire_EC::measureTemp());
 
     pCharacteristic->setValue(s.c_str());
     pCharacteristic->notify();
   }
 };
 
-class tcCallback : public BLECharacteristicCallbacks, EC_Salinity {
+class offsetCallback : public BLECharacteristicCallbacks, uFire_EC {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    std::string sOffset = pCharacteristic->getValue();
+    float offset        = ::atof(sOffset.c_str());
+
+    uFire_EC::calibrateProbe(offset);
+  }
+
+  void onRead(BLECharacteristic *pCharacteristic) {
+    String sOffset = String(uFire_EC::getCalibrateOffset());
+
+    pCharacteristic->setValue(sOffset.c_str());
+  }
+};
+
+class highRefCallback : public BLECharacteristicCallbacks, uFire_EC {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    std::string shighRef = pCharacteristic->getValue();
+    float highRef        = ::atof(shighRef.c_str());
+
+    uFire_EC::calibrateProbeHigh(highRef);
+  }
+
+  void onRead(BLECharacteristic *pCharacteristic) {
+    String sHighRef = String(uFire_EC::getCalibrateHighReference());
+
+    pCharacteristic->setValue(sHighRef.c_str());
+  }
+};
+
+class lowRefCallback : public BLECharacteristicCallbacks, uFire_EC {
   void onWrite(BLECharacteristic *pCharacteristic) {
     std::string s = pCharacteristic->getValue();
     float f       = ::atof(s.c_str());
 
-    EC_Salinity::useTemperatureCompensation(f);
+    uFire_EC::calibrateProbeLow(f);
   }
 
   void onRead(BLECharacteristic *pCharacteristic) {
-    String s = String(EC_Salinity::usingTemperatureCompensation());
+    String s = String(uFire_EC::getCalibrateLowReference());
 
     pCharacteristic->setValue(s.c_str());
   }
 };
 
-class versionCallback : public BLECharacteristicCallbacks, EC_Salinity {
+class highReadCallback : public BLECharacteristicCallbacks, uFire_EC {
   void onRead(BLECharacteristic *pCharacteristic) {
-    String s = String(EC_Salinity::getVersion());
+    String s = String(uFire_EC::getCalibrateHighReading());
 
     pCharacteristic->setValue(s.c_str());
   }
 };
 
-class uFire_EC_BLE : public EC_Salinity {
+class lowReadCallback : public BLECharacteristicCallbacks, uFire_EC {
+  void onRead(BLECharacteristic *pCharacteristic) {
+    String s = String(uFire_EC::getCalibrateLowReading());
+
+    pCharacteristic->setValue(s.c_str());
+  }
+};
+
+class tcCallback : public BLECharacteristicCallbacks, uFire_EC {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    std::string s = pCharacteristic->getValue();
+    float f       = ::atof(s.c_str());
+
+    uFire_EC::useTemperatureCompensation(f);
+  }
+
+  void onRead(BLECharacteristic *pCharacteristic) {
+    String s = String(uFire_EC::usingTemperatureCompensation());
+
+    pCharacteristic->setValue(s.c_str());
+  }
+};
+
+class dpCallback : public BLECharacteristicCallbacks, uFire_EC {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    std::string s = pCharacteristic->getValue();
+    float f       = ::atof(s.c_str());
+
+    uFire_EC::useDualPoint(f);
+  }
+
+  void onRead(BLECharacteristic *pCharacteristic) {
+    String s = String(uFire_EC::usingDualPoint());
+
+    pCharacteristic->setValue(s.c_str());
+  }
+};
+
+class versionCallback : public BLECharacteristicCallbacks, uFire_EC {
+  void onRead(BLECharacteristic *pCharacteristic) {
+    String s = String(uFire_EC::getVersion());
+
+    pCharacteristic->setValue(s.c_str());
+  }
+};
+
+class uFire_EC_BLE : public uFire_EC {
 public:
 
   uFire_EC_BLE(uint8_t sda,
-               uint8_t scl) : EC_Salinity(sda, scl) {}
+               uint8_t scl) : uFire_EC(sda, scl) {}
 
   uFire_EC_BLE(uint8_t sda,
-               uint8_t scl, uint8_t i2c_address) : EC_Salinity(sda, scl, i2c_address) {}
+               uint8_t scl, uint8_t i2c_address) : uFire_EC(sda, scl, i2c_address) {}
 
   void startBLE();
   void measureEC();
@@ -93,8 +170,15 @@ private:
   BLEServer *pServer;
   BLEService *pService;
   BLECharacteristic *pmS_Characteristic;
+  BLECharacteristic *poffset_Characteristic;
   BLECharacteristic *ptemp_Characteristic;
+  BLECharacteristic *pk_Characteristic;
+  BLECharacteristic *phigh_ref_Characteristic;
+  BLECharacteristic *plow_ref_Characteristic;
+  BLECharacteristic *phigh_read_Characteristic;
+  BLECharacteristic *plow_read_Characteristic;
   BLECharacteristic *ptc_Characteristic;
+  BLECharacteristic *pdp_Characteristic;
   BLECharacteristic *pversion_Characteristic;
 };
 

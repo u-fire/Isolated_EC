@@ -37,14 +37,13 @@ uFire_EC::uFire_EC(uint8_t sda, uint8_t scl)
 uFire_EC::~uFire_EC()
 {}
 
-float uFire_EC::measureEC(float tempCoefficient, bool newTemp)
+float uFire_EC::measureEC(bool newTemp)
 {
   if (newTemp)
   {
     measureTemp();
   }
 
-  _write_register(EC_TEMPCOEF_REGISTER, tempCoefficient);
   _send_command(EC_MEASURE_EC);
   delay(EC_EC_MEASUREMENT_TIME);
   raw = _read_register(EC_RAW_REGISTER);
@@ -83,12 +82,12 @@ float uFire_EC::measureEC(float tempCoefficient, bool newTemp)
 
 float uFire_EC::measureEC()
 {
-  return measureEC(tempCoefEC, usingTemperatureCompensation());
+  return measureEC(usingTemperatureCompensation());
 }
 
 float uFire_EC::measureSalinity()
 {
-  measureEC(tempCoefSalinity, usingTemperatureCompensation());
+  measureEC(usingTemperatureCompensation());
   return salinityPSU;
 }
 
@@ -115,36 +114,33 @@ void uFire_EC::setTemp(float temp_C)
   tempF = ((tempC * 9) / 5) + 32;
 }
 
-void uFire_EC::calibrateProbe(float solutionEC, float tempCoef)
+void uFire_EC::calibrateProbe(float solutionEC)
 {
   bool dualpoint = usingDualPoint();
 
   useDualPoint(false);
-  _write_register(EC_TEMPCOEF_REGISTER, tempCoef);
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_PROBE);
   delay(EC_EC_MEASUREMENT_TIME);
   useDualPoint(dualpoint);
 }
 
-void uFire_EC::calibrateProbeLow(float solutionEC, float tempCoef)
+void uFire_EC::calibrateProbeLow(float solutionEC)
 {
   bool dualpoint = usingDualPoint();
 
   useDualPoint(false);
-  _write_register(EC_TEMPCOEF_REGISTER, tempCoef);
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_LOW);
   delay(EC_EC_MEASUREMENT_TIME);
   useDualPoint(dualpoint);
 }
 
-void uFire_EC::calibrateProbeHigh(float solutionEC, float tempCoef)
+void uFire_EC::calibrateProbeHigh(float solutionEC)
 {
   bool dualpoint = usingDualPoint();
 
   useDualPoint(false);
-  _write_register(EC_TEMPCOEF_REGISTER, tempCoef);
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_HIGH);
   delay(EC_EC_MEASUREMENT_TIME);
@@ -242,6 +238,8 @@ void uFire_EC::reset()
   delay(10);
   setTempConstant(25.0);
   delay(10);
+  setTempCoefficient(0.019);
+  delay(10);
   useDualPoint(false);
   useTemperatureCompensation(false);
 }
@@ -309,6 +307,16 @@ void uFire_EC::writeEEPROM(uint8_t address, float value)
   _write_register(EC_SOLUTION_REGISTER, address);
   _write_register(EC_BUFFER_REGISTER,   value);
   _send_command(EC_WRITE);
+}
+
+void uFire_EC::setTempCoefficient(float temp_coef)
+{
+  _write_register(EC_TEMPCOEF_REGISTER, temp_coef);
+}
+
+float uFire_EC::getTempCoefficient()
+{
+  return _read_register(EC_TEMPCOEF_REGISTER);
 }
 
 void uFire_EC::_change_register(uint8_t r)

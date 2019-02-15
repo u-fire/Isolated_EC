@@ -75,18 +75,14 @@ public:
               uint8_t scl);
   #endif // ifndef ESP32
   ~uFire_EC();
-  float measureEC(float tempCoefficient,
-                  bool  newTemp);
+  float measureEC(bool newTemp);
   float measureEC();
   float measureSalinity();
   float measureTemp();
   void  setTemp(float temp_C);
-  void  calibrateProbe(float solutionEC,
-                       float tempCoef);
-  void  calibrateProbeLow(float solutionEC,
-                          float tempCoef);
-  void  calibrateProbeHigh(float solutionEC,
-                           float tempCoef);
+  void  calibrateProbe(float solutionEC);
+  void  calibrateProbeLow(float solutionEC);
+  void  calibrateProbeHigh(float solutionEC);
   void  setDualPointCalibration(float refLow,
                                 float refHigh,
                                 float readLow,
@@ -94,6 +90,8 @@ public:
   void    reset();
   void    setTempConstant(float b);
   float   getTempConstant();
+  void    setTempCoefficient(float tempCoef);
+  float   getTempCoefficient();
   void    useTemperatureCompensation(bool b);
   bool    usingTemperatureCompensation();
   void    useDualPoint(bool b);

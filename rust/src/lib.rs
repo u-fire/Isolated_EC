@@ -97,7 +97,7 @@ impl EcProbe {
     /// # Example
     /// ```
     /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
-    /// ec.calibrate_single(500.0);
+    /// ec.calibrate_single(1.413.0);
     /// ```
     pub fn calibrate_single(&mut self, solution_ec: f32) -> Result<(), Box<LinuxI2CError>> {
         self._write_register(EC_SOLUTION_REGISTER, solution_ec)?;
@@ -112,7 +112,7 @@ impl EcProbe {
     /// # Example
     /// ```
     /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
-    /// ec.calibrate_probe_low(50.0);
+    /// ec.calibrate_probe_low(1.413.0);
     /// ```
     pub fn calibrate_probe_low(&mut self, solution_ec: f32) -> Result<(), Box<LinuxI2CError>> {
         self._write_register(EC_SOLUTION_REGISTER, solution_ec)?;
@@ -127,7 +127,7 @@ impl EcProbe {
     /// # Example
     /// ```
     /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
-    /// ec.calibrate_probe_high(56.0);
+    /// ec.calibrate_probe_high(12.88.0);
     /// ```
     pub fn calibrate_probe_high(&mut self, solution_ec: f32) -> Result<(), Box<LinuxI2CError>> {
         self._write_register(EC_SOLUTION_REGISTER, solution_ec)?;
@@ -145,7 +145,6 @@ impl EcProbe {
     /// ec.measure_ec(true);
     /// ```
     pub fn measure_ec(&mut self) -> Result<(f32), Box<LinuxI2CError>> {
-        self._write_register(EC_TEMPCOEF_REGISTER, 0.019)?;
         self.dev.smbus_write_byte_data(EC_TASK_REGISTER, EC_MEASURE_EC)?;
         thread::sleep(Duration::from_millis(EC_EC_MEASUREMENT_TIME));
 
@@ -178,7 +177,6 @@ impl EcProbe {
     /// ec.measure_salinity();
     /// ```
     pub fn measure_salinity(&mut self) -> Result<(f32), Box<LinuxI2CError>> {
-        self._write_register(EC_TEMPCOEF_REGISTER, 0.021)?;
         self.dev.smbus_write_byte_data(EC_TASK_REGISTER, EC_MEASURE_SW)?;
         thread::sleep(Duration::from_millis(EC_EC_MEASUREMENT_TIME));
         Ok(self._read_register(EC_SALINITY_PSU)?)
@@ -206,6 +204,30 @@ impl EcProbe {
     /// ```
     pub fn get_temp_constant(&mut self) -> Result<(f32), Box<LinuxI2CError>> {
         Ok(self._read_register(EC_TEMP_COMPENSATION_REGISTER)?)
+    }
+
+    /// Sets the temperature coefficient to use for compensation and saves it in the devices's EEPROM.
+    ///
+    /// # Example
+    /// ```
+    /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
+    /// ec.set_temp_coefficient(0.019);
+    /// ```
+    pub fn set_temp_coefficient(&mut self, temp_coef: u8) -> Result<(), Box<LinuxI2CError>> {
+        self._write_register(EC_TEMPCOEF_REGISTER, temp_coef)?;
+
+        Ok(())
+    }
+
+    /// Returns the temperature coefficient from the device.
+    ///
+    /// # Example
+    /// ```
+    /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
+    /// ec.get_temp_coefficient();
+    /// ```
+    pub fn get_temp_coefficient(&mut self) -> Result<(f32), Box<LinuxI2CError>> {
+        Ok(self._read_register(EC_TEMPCOEF_REGISTER)?)
     }
 
     /// Returns the dual-point calibration low reference value.
