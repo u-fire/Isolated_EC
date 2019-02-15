@@ -62,11 +62,10 @@ class uFire_EC(object):
         i2c = smbus.SMBus(i2c_bus)
 
 # measurements
-    def _measure(self, tempCoefficient, newTemp=None):
+    def _measure(self, newTemp=None):
         if newTemp is True:
             self.measureTemp()
 
-        self._write_register(EC_TEMPCOEF_REGISTER, tempCoefficient)
         self._send_command(EC_MEASURE_EC)
         time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
         self.mS = self._read_register(EC_MS_REGISTER)
@@ -96,15 +95,15 @@ class uFire_EC(object):
 
     def measureEC(self, newTemp=None):
         if newTemp is None:
-            return self._measure(self.tempCoefEC, self.usingTemperatureCompensation())
+            return self._measure(self.usingTemperatureCompensation())
         else:
-            return self._measure(self.tempCoefEC, newTemp)
+            return self._measure(newTemp)
 
     def measureSalinity(self, newTemp=None):
         if newTemp is None:
-            return self._measure(self.tempCoefSalinity, self.usingTemperatureCompensation())
+            return self._measure(self.usingTemperatureCompensation())
         else:
-            return self._measure(self.tempCoefSalinity, newTemp)
+            return self._measure(newTemp)
 
     def measureTemp(self):
         self._send_command(EC_MEASURE_TEMP)
@@ -119,28 +118,25 @@ class uFire_EC(object):
         return self.tempC
 
 # calibration
-    def calibrateProbe(self, solutionEC, tempCoef):
+    def calibrateProbe(self, solutionEC):
         dualpoint = self.usingDualPoint()
         self.useDualPoint(0)
-        self._write_register(EC_TEMPCOEF_REGISTER, tempCoef)
         self._write_register(EC_SOLUTION_REGISTER, solutionEC)
         self._send_command(EC_CALIBRATE_PROBE)
         time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
         self.useDualPoint(dualpoint)
 
-    def calibrateProbeLow(self, solutionEC, tempCoef):
+    def calibrateProbeLow(self, solutionEC):
         dualpoint = self.usingDualPoint()
         self.useDualPoint(0)
-        self._write_register(EC_TEMPCOEF_REGISTER, tempCoef)
         self._write_register(EC_SOLUTION_REGISTER, solutionEC)
         self._send_command(EC_CALIBRATE_LOW)
         time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
         self.useDualPoint(dualpoint)
 
-    def calibrateProbeHigh(self, solutionEC, tempCoef):
+    def calibrateProbeHigh(self, solutionEC):
         dualpoint = self.usingDualPoint()
         self.useDualPoint(0)
-        self._write_register(EC_TEMPCOEF_REGISTER, tempCoef)
         self._write_register(EC_SOLUTION_REGISTER, solutionEC)
         self._send_command(EC_CALIBRATE_HIGH)
         time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
@@ -187,6 +183,12 @@ class uFire_EC(object):
 
     def getTempConstant(self):
         return self._read_register(EC_TEMP_COMPENSATION_REGISTER)
+
+    def setTempCoefficient(self, temp_coef):
+        self._write_register(EC_TEMPCOEF_REGISTER, temp_coef)
+
+    def getTempCoefficient(self):
+        return self._read_register(EC_TEMPCOEF_REGISTER)
 
     def useTemperatureCompensation(self, b):
         retval = self._read_byte(EC_CONFIG_REGISTER)

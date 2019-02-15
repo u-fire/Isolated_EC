@@ -19,6 +19,7 @@ class ECShell(cmd.Cmd):
                                                    ) + " / " + str(ec.getCalibrateHighReading()))
         print("\ttemp. compensation: " + str(ec.usingTemperatureCompensation()))
         print("\t\tconstant: " + str(ec.getTempConstant()))
+        print("\t\tcoefficient: " + str(ec.getTempCoefficient()))
         print("\tversion: " + (str(ec.getVersion())) +
               "." + (str(ec.getFirmware())))
 
@@ -89,6 +90,13 @@ class ECShell(cmd.Cmd):
             ec.calibrateProbe(float(solution_mS), ec.tempCoefEC)
 
         print("offset: " + str(ec.getCalibrateOffset()))
+
+    def do_coef(self, tcoefficient):
+        """calibrates the device\nparameters:\n\tcoefficient"""
+        if tcoefficient:
+            ec.setTempCoefficient(float(tcoefficient))
+
+        print("coefficient: " + str(ec.getTempCoefficient()))
 
     def do_data(self, a):
         """prints all the data registers"""
