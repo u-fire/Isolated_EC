@@ -26,7 +26,7 @@ void setup()
   // use the EC value listed under the current temperature to calibrate
   // eg. if the temperature of the calibration solution is 20 C, use the
   // mS/cm value listed for that temperature
-  ec.calibrateProbe(1.413, ec.tempCoefEC);
+  ec.calibrateProbe(1.413);
 
   // turn temperature compensation on
   ec.useTemperatureCompensation(true);

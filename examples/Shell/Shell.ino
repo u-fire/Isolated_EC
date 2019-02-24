@@ -1,27 +1,24 @@
 /*
-   ufire.co for links to documentation, examples, and libraries
-   github.com/u-fire for feature requests, bug reports, and  questions
-   questions@ufire.co to get in touch with someone
-
-   This example is compatible with Isolated EC Probe Interface
-   hardware version 1, firmware version 1.
-   
    This allows you to run various functions on a command-line like interface.
    Enter:
-    `config` to see the configuration of the device.
-    'ec' to get a measurement in mS
-    'sw' to measure seawater
-    'data' to see all the data  members of the class like uS, and S
-    'temp' to read the temperature
-    'reset' to reset all the configuration stored in the device
+   `config` to see the configuration of the device.
+   'ec' to get a measurement in mS
+   'sal' to measure seawater
+   'data' to see all the data  members of the class like uS, and S
+   'temp' to read the temperature
+   'reset' to reset all the configuration stored in the device
 
    Using Temperature compensation with attached temperature sensor:
     tc 1 25 <to adjust readings as if they were at 25 C>
     tc 0 <to disable compensation>
 
-   Calibration:
-    cal-ec 2.0 <to calibrate using 2.0 mS solution>
-    cal-sw 53.0 <to calibrate using 53 mS solution>
+   Single Point Calibration:
+    cal 2.0 <to calibrate in a 2.0 mS/cm solution>
+
+   Dual Point Calibration:
+    low 0.7 <to calibrate the low value as 0.7 mS/cm>
+    high 2.0 <to calibrate the high value as 2.0 mS/cm>
+    dp 1 <to turn dual point on>
 
    Set a temperature to use:
     t 20 <to use 20 C as the temperature rather than using the attached temp. sensor>
@@ -31,29 +28,27 @@
 
    Measure EC:
     ec
-    ec x <take an EC measurement every x milliseconds, press any key to stop>
+    ec x <take an EC measurement every x milliseconds>
 
    Measure saltwater:
-    sw
-    sw  x <take a SW measurement every x milliseconds>
+    sal
+    sal  x <take a seawater measurement every x milliseconds>
 
    Display results in PPM 500:
     tds
     tds x <take a measurement every x milliseconds>
 
    Change the I2C address:
-    i2c 3d <address is interpreted as a hex number without the 0x>
+    i2c 3d <address is a interpreted as a hex number without the 0x>
 
    Read/Write custom EEPROM data:
     read 300 <returns a float stored at address 300>
     write 300 123.4 <writes 123.4 at address 300>
  */
-
-#include <Arduino.h>
-#include <uFire_EC.h>
+#include "uFire_EC.h"
 
 #ifdef ESP32
-uFire_EC EC(19, 23); // sda, scl
+EC_Salinity EC(19, 23); // sda, scl
 #else // ifdef ESP32
 uFire_EC EC;
 #endif // ifdef ESP32
@@ -62,27 +57,30 @@ String buffer, cmd, p1, p2;
 
 void config()
 {
-  Serial.print("EC Interface: ");
+  Serial.print("EC Probe Interface: ");
   Serial.println(EC.connected() ? "connected" : "*disconnected*");
   Serial.println("calibration:");
-  Serial.print("  EC: ");
-  Serial.println(EC.getCalibrationEC());
-  Serial.print("  SW: ");
-  Serial.println(EC.getCalibrationSW());
+  Serial.print("  offset: "); Serial.println(EC.getCalibrateOffset(), 4);
+  Serial.print("  dual point: "); Serial.println(EC.usingDualPoint() ? "yes" : "no");
+  Serial.print("    low reference / read: "); Serial.print(EC.getCalibrateLowReference(), 4);
+  Serial.print(" /  "); Serial.println(EC.getCalibrateLowReading(), 4);
+  Serial.print("    high reference / read: "); Serial.print(EC.getCalibrateHighReference(), 4);
+  Serial.print(" / "); Serial.println(EC.getCalibrateHighReading(), 4);
   Serial.print("temp. compensation: ");
   Serial.println(EC.usingTemperatureCompensation() ? "yes" : "no");
   Serial.print("    constant: ");
   Serial.println(EC.getTempConstant());
-  Serial.print("  version: ");
-  Serial.print(EC.getVersion(), HEX);
-  Serial.print(".");
+  Serial.print("    coefficient: ");
+  Serial.println(EC.getTempCoefficient(), 3);
+  Serial.print("H/W version: ");
+  Serial.println(EC.getVersion(), HEX);
+  Serial.print("F/W version: ");
   Serial.println(EC.getFirmware(), HEX);
 }
 
-void reset_config()
+void config_reset()
 {
   EC.reset();
-  config();
 }
 
 void temperature()
@@ -125,28 +123,6 @@ void data()
   Serial.println(EC.tempF);
 }
 
-void cal_ec()
-{
-  if (p1.length())
-  {
-    EC.calibrateEC(p1.toFloat());
-  }
-
-  Serial.print("calibration EC: ");
-  Serial.println(EC.getCalibrationEC(), 2);
-}
-
-void cal_sw()
-{
-  if (p1.length())
-  {
-    EC.calibrateSW(p1.toFloat());
-  }
-
-  Serial.print("calibration SW: ");
-  Serial.println(EC.getCalibrationSW(), 2);
-}
-
 void temp_comp()
 {
   if (p1.length())
@@ -164,6 +140,15 @@ void temp_comp()
   Serial.println(EC.usingTemperatureCompensation() ? "yes" : "no");
   Serial.print("   constant: ");
   Serial.println(EC.getTempConstant());
+}
+
+void dual_point() {
+  if (p1.length()) {
+    EC.useDualPoint(p1.toInt());
+  }
+
+  Serial.print("dual point: ");
+  Serial.println(EC.usingDualPoint() ? "yes" : "no");
 }
 
 void i2c()
@@ -234,13 +219,13 @@ void raw()
   }
 }
 
-void sw()
+void sal()
 {
   if (p1.length())
   {
     while (Serial.available() == 0)
     {
-      EC.measureSW(false);
+      EC.measureEC(false);
       Serial.print("salinity PSU: ");
       Serial.println(EC.salinityPSU, 2);
       delay(p1.toInt());
@@ -248,10 +233,44 @@ void sw()
   }
   else
   {
-    EC.measureSW(false);
+    EC.measureEC(false);
     Serial.print("salinity PSU: ");
     Serial.println(EC.salinityPSU, 2);
   }
+}
+
+void low() {
+  if (p1.length()) {
+    EC.calibrateProbeLow(p1.toFloat());
+  }
+  Serial.print("low reference | read: "); Serial.print(EC.getCalibrateLowReference(), 2);
+  Serial.print(" | "); Serial.println(EC.getCalibrateLowReading(), 2);
+}
+
+void high() {
+  if (p1.length()) {
+    EC.calibrateProbeHigh(p1.toFloat());
+  }
+  Serial.print("high reference | read: "); Serial.print(EC.getCalibrateHighReference(), 2);
+  Serial.print(" | "); Serial.println(EC.getCalibrateHighReading(), 2);
+}
+
+void calibrate() {
+  if (p1.length()) {
+    EC.calibrateProbe(p1.toFloat());
+  }
+
+  Serial.print("offset: ");
+  Serial.println(EC.getCalibrateOffset(), 5);
+}
+
+void coeffieicnet() {
+  if (p1.length()) {
+    EC.setTempCoefficient(p1.toFloat());
+  }
+
+  Serial.print("coefficient: ");
+  Serial.println(EC.getTempCoefficient(), 5);
 }
 
 void read()
@@ -272,34 +291,23 @@ void write()
 
 void cmd_run()
 {
-  if ((cmd == "conf") || (cmd == "config") || (cmd == "c"))
-    config();
-  if ((cmd == "reset") || (cmd == "r"))
-    reset_config();
-  if ((cmd == "temp") || (cmd == "t"))
-    temperature();
-  if ((cmd == "data") || (cmd == "d"))
-    data();
-  if (cmd == "tc")
-    temp_comp();
-  if (cmd == "i2c")
-    i2c();
-  if (cmd == "ec")
-    ec();
-  if (cmd == "sw")
-    sw();
-  if (cmd == "raw")
-    raw();
-  if (cmd == "cal-ec")
-    cal_ec();
-  if (cmd == "cal-sw")
-    cal_sw();
-  if (cmd == "read")
-    read();
-  if (cmd == "write")
-    write();
-  if (cmd == "tds")
-    tds();
+  if ((cmd == "conf") || (cmd == "config") || (cmd == "c")) config();
+  if ((cmd == "reset") || (cmd == "r")) config_reset();
+  if ((cmd == "temp") || (cmd == "t")) temperature();
+  if ((cmd == "data") || (cmd == "d")) data();
+  if ((cmd == "calibrate") || (cmd == "cal")) calibrate();
+  if (cmd == "dp") dual_point();
+  if (cmd == "low") low();
+  if (cmd == "high") high();
+  if (cmd == "tc") temp_comp();
+  if (cmd == "i2c") i2c();
+  if (cmd == "ec") ec();
+  if (cmd == "sal") sal();
+  if (cmd == "raw") raw();
+  if (cmd == "read") read();
+  if (cmd == "write") write();
+  if (cmd == "tds") tds();
+  if (cmd == "coef") coeffieicnet();
 }
 
 void cli_process()
