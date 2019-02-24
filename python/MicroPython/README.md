@@ -14,7 +14,7 @@ To get started with the basic example:
 - `esptool.py --chip esp32 --port [/dev/ttyUSB0|COM1] write_flash -z 0x1000 [firmware file]`
 - `git clone https://github.com/u-fire/Isolated_EC.git --depth=1`
 - `cd Isolated_EC/python/MicroPython`
-- `ampy --port /dev/ttyUSB0 put uFire_EC.py`
+- `ampy --port [/dev/ttyUSB0|COM1] put uFire_EC.py`
 - `ampy --port [/dev/ttyUSB0|COM1] put basic.py`
 - `putty -serial [/dev/ttyUSB0|COM1] -sercfg 115200, 8, n, 1` or other serial program
 

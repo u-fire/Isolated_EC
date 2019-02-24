@@ -38,7 +38,7 @@ EC_TASK_REGISTER = 55               # task register */
 EC_EC_MEASUREMENT_TIME = 750        # delay between EC measurements
 EC_TEMP_MEASURE_TIME = 750          # delay for temperature measurement
 
-EC_TEMP_COMPENSATION_CONFIG_BIT = 0  # temperature compensation config bit
+EC_TEMP_COMPENSATION_CONFIG_BIT = 1  # temperature compensation config bit
 EC_DUALPOINT_CONFIG_BIT = 0         # dual point config bit
 
 
@@ -57,7 +57,7 @@ class uFire_EC(object):
     tempCoefEC = 0.019
     tempCoefSalinity = 0.021
 
-    def __init__(self, sda, scl, address=EC_SALINITY, **kwargs):
+    def __init__(self, sda=19, scl=23, address=EC_SALINITY, **kwargs):
         global i2c
         self.address = address
         i2c = I2C(-1, Pin(scl), Pin(sda))

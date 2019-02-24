@@ -2,7 +2,7 @@ import cmd
 from uFire_EC import uFire_EC
 
 # connect board SDA to pin 19, SCL to pin 23, but any pins can be used.
-ec = uFire_EC(sda=19, scl=23)
+ec = uFire_EC()
 
 
 class ECShell(cmd.Cmd):
@@ -63,14 +63,14 @@ class ECShell(cmd.Cmd):
     def do_low(self, low_reference_mS):
         """returns or sets the low reference/reading values\nparameters\n\tlow reference solution in mS"""
         if low_reference_mS:
-            ec.calibrateProbeLow(float(low_reference_mS), ec.tempCoefEC)
+            ec.calibrateProbeLow(float(low_reference_mS))
         print("\tlow reference / read: " + str(ec.getCalibrateLowReference()
                                                ) + " / " + str(ec.getCalibrateLowReading()))
 
     def do_high(self, high_reference_mS):
         """returns or sets the high referencen/reading values\nparameters\n\thigh reference solution in mS"""
         if high_reference_mS:
-            ec.calibrateProbeHigh(float(high_reference_mS), ec.tempCoefEC)
+            ec.calibrateProbeHigh(float(high_reference_mS))
         print("\thigh reference / reading: " + str(ec.getCalibrateHighReference()
                                                    ) + " / " + str(ec.getCalibrateHighReading()))
 
@@ -88,16 +88,16 @@ class ECShell(cmd.Cmd):
     def do_cal(self, solution_mS):
         """calibrates the device\nparameters:\n\tcalibration solution in mS"""
         if solution_mS:
-            ec.calibrateProbe(float(solution_mS), ec.tempCoefEC)
+            ec.calibrateProbe(float(solution_mS))
 
-        print("offset: " + str(ec.getCalibrateOffset()))
+        print("\toffset: " + str(ec.getCalibrateOffset()))
 
     def do_coef(self, tcoefficient):
         """calibrates the device\nparameters:\n\tcoefficient"""
         if tcoefficient:
             ec.setTempCoefficient(float(tcoefficient))
 
-        print("coefficient: " + str(ec.getTempCoefficient()))
+        print("\tcoefficient: " + str(ec.getTempCoefficient()))
 
     def do_data(self, a):
         """prints all the data registers"""

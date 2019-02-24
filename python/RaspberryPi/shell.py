@@ -3,13 +3,13 @@ from uFire_EC import uFire_EC
 
 ec = uFire_EC()
 
+
 class ECShell(cmd.Cmd):
     prompt = '> '
 
     def do_config(self, a):
         """prints out all the configuration data\nparameters: none"""
-        print("EC Interface Config: " +
-              'connected' if ec.connected() else '**disconnected**')
+        print("EC Interface Config: " + 'connected' if ec.connected() else '**disconnected**')
         print("calibration: ")
         print("\toffset: " + str(ec.getCalibrateOffset()))
         print("\tdual point: " + str(ec.usingDualPoint()))
@@ -20,8 +20,7 @@ class ECShell(cmd.Cmd):
         print("\ttemp. compensation: " + str(ec.usingTemperatureCompensation()))
         print("\t\tconstant: " + str(ec.getTempConstant()))
         print("\t\tcoefficient: " + str(ec.getTempCoefficient()))
-        print("\tversion: " + (str(ec.getVersion())) +
-              "." + (str(ec.getFirmware())))
+        print("\tversion: " + (str(ec.getVersion())) + "." + (str(ec.getFirmware())))
 
     def do_reset(self, a):
         """reset all saved values\nparameters: none"""
@@ -62,14 +61,14 @@ class ECShell(cmd.Cmd):
     def do_low(self, low_reference_mS):
         """returns or sets the low reference/reading values\nparameters\n\tlow reference solution in mS"""
         if low_reference_mS:
-            ec.calibrateProbeLow(float(low_reference_mS), ec.tempCoefEC)
+            ec.calibrateProbeLow(float(low_reference_mS))
         print("\tlow reference / read: " + str(ec.getCalibrateLowReference()
                                                ) + " / " + str(ec.getCalibrateLowReading()))
 
     def do_high(self, high_reference_mS):
         """returns or sets the high referencen/reading values\nparameters\n\thigh reference solution in mS"""
         if high_reference_mS:
-            ec.calibrateProbeHigh(float(high_reference_mS), ec.tempCoefEC)
+            ec.calibrateProbeHigh(float(high_reference_mS))
         print("\thigh reference / reading: " + str(ec.getCalibrateHighReference()
                                                    ) + " / " + str(ec.getCalibrateHighReading()))
 
@@ -87,7 +86,7 @@ class ECShell(cmd.Cmd):
     def do_cal(self, solution_mS):
         """calibrates the device\nparameters:\n\tcalibration solution in mS"""
         if solution_mS:
-            ec.calibrateProbe(float(solution_mS), ec.tempCoefEC)
+            ec.calibrateProbe(float(solution_mS))
 
         print("offset: " + str(ec.getCalibrateOffset()))
 
