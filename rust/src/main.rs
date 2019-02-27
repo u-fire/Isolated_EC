@@ -1,4 +1,4 @@
-extern crate ufire_ec;
+extern crate ufire_iso_ec;
 extern crate shrust;
 use shrust::{Shell, ShellIO};
 use std::io::prelude::*;

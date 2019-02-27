@@ -20,7 +20,7 @@ keywords = ["ec", "electrical", "conductivity", "sensor", "salinity"]
 license = "MIT"
 
 [lib]
-name = "ufire_ec"
+name = "ufire_iso_ec"
 path = "src/lib.rs"
 
 [[bin]]
