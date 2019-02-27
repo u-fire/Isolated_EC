@@ -2,7 +2,7 @@ extern crate ufire_iso_ec;
 extern crate shrust;
 use shrust::{Shell, ShellIO};
 use std::io::prelude::*;
-use ufire_ec::*;
+use ufire_iso_ec::*;
 
 fn main() {
 	println!("Isolated EC Probe Interface shell");

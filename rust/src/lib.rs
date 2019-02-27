@@ -1,4 +1,4 @@
-//! # uFire EC Probe Interface
+//! # uFire Isolated EC Probe Interface
 //!
 //! * measure EC
 //! * measure salinity
