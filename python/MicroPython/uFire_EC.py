@@ -225,7 +225,7 @@ class uFire_EC(object):
         self.useDualPoint(False)
 
     def setI2CAddress(self, i2cAddress):
-        self._write_register(EC_BUFFER_REGISTER, float(i2cAddress))
+        self._write_register(EC_SOLUTION_REGISTER, float(i2cAddress))
         self._send_command(EC_I2C)
         self.address = int(i2cAddress)
 
