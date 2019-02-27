@@ -35,7 +35,7 @@ const EC_CALIBRATE_REFLOW_REGISTER: u8 = 21;
 const EC_CALIBRATE_READHIGH_REGISTER: u8 = 25;
 const EC_CALIBRATE_READLOW_REGISTER: u8 = 29;
 const EC_CALIBRATE_OFFSET_REGISTER: u8 = 33;
-const EC_SALINITY_PSU: u8 = 37;
+const EC_PSU_REGISTER: u8 = 37;
 const EC_RAW_REGISTER: u8 = 41;
 const EC_TEMP_COMPENSATION_REGISTER: u8 = 45;
 const EC_BUFFER_REGISTER: u8 = 49;
@@ -43,9 +43,10 @@ const EC_FW_VERSION_REGISTER: u8 = 53;
 const EC_CONFIG_REGISTER: u8 = 54;
 const EC_TASK_REGISTER: u8 = 55;    
 
-const EC_TEMP_COMPENSATION_CONFIG_BIT: u8 = 0;
+const EC_DUALPOINT_CONFIG_BIT: u8 = 0;
+const EC_TEMP_COMPENSATION_CONFIG_BIT: u8 = 1;
 
-const EC_EC_MEASUREMENT_TIME: u64 = 250;
+const EC_EC_MEASUREMENT_TIME: u64 = 750;
 const EC_TEMP_MEASURE_TIME: u64 = 750;
 
 pub struct EcProbe {
@@ -144,7 +145,7 @@ impl EcProbe {
     /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
     /// ec.measure_ec(true);
     /// ```
-    pub fn measure_ec(&mut self) -> Result<(f32), Box<LinuxI2CError>> {
+    pub fn measure_ec(&mut self, new_temp: bool) -> Result<(f32), Box<LinuxI2CError>> {
         self.dev.smbus_write_byte_data(EC_TASK_REGISTER, EC_MEASURE_EC)?;
         thread::sleep(Duration::from_millis(EC_EC_MEASUREMENT_TIME));
 
@@ -169,7 +170,7 @@ impl EcProbe {
         Ok(self._read_register(EC_RAW_REGISTER)?)
     }
 
-    /// Starts an SW measurement and returns the salinity in PSU.
+    /// Starts an salinity measurement and returns the salinity in PSU.
     ///
     /// # Example
     /// ```
@@ -177,9 +178,9 @@ impl EcProbe {
     /// ec.measure_salinity();
     /// ```
     pub fn measure_salinity(&mut self) -> Result<(f32), Box<LinuxI2CError>> {
-        self.dev.smbus_write_byte_data(EC_TASK_REGISTER, EC_MEASURE_SW)?;
+        self.dev.smbus_write_byte_data(EC_TASK_REGISTER, EC_MEASURE_EC)?;
         thread::sleep(Duration::from_millis(EC_EC_MEASUREMENT_TIME));
-        Ok(self._read_register(EC_SALINITY_PSU)?)
+        Ok(self._read_register(EC_PSU_REGISTER)?)
     }
 
     /// Sets the temperature constant to use for compensation and saves it in the devices's EEPROM.
@@ -189,7 +190,7 @@ impl EcProbe {
     /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
     /// ec.set_temp_constant(20);
     /// ```
-    pub fn set_temp_constant(&mut self, temp_constant: u8) -> Result<(), Box<LinuxI2CError>> {
+    pub fn set_temp_constant(&mut self, temp_constant: f32) -> Result<(), Box<LinuxI2CError>> {
         self._write_register(EC_TEMP_COMPENSATION_REGISTER, temp_constant)?;
 
         Ok(())
@@ -213,7 +214,7 @@ impl EcProbe {
     /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
     /// ec.set_temp_coefficient(0.019);
     /// ```
-    pub fn set_temp_coefficient(&mut self, temp_coef: u8) -> Result<(), Box<LinuxI2CError>> {
+    pub fn set_temp_coefficient(&mut self, temp_coef: f32) -> Result<(), Box<LinuxI2CError>> {
         self._write_register(EC_TEMPCOEF_REGISTER, temp_coef)?;
 
         Ok(())
@@ -326,6 +327,7 @@ impl EcProbe {
         self._write_register(EC_TEMP_COMPENSATION_REGISTER, 25.0)?;
         self.use_dual_point(false)?;
         self.use_temperature_compensation(false)?;
+	self.set_temp_coefficient(0.019)?;
         Ok(())
     }
 
@@ -350,8 +352,8 @@ impl EcProbe {
     /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
     /// // ec.set_i2c_address(0x4f);
     /// ```
-    pub fn set_i2c_address(&mut self, i2c_address: u8) -> Result<(), Box<LinuxI2CError>> {
-        self._write_register(EC_BUFFER_REGISTER, i2c_address as f32)?;
+    pub fn set_i2c_address(&mut self, i2c_address: u16) -> Result<(), Box<LinuxI2CError>> {
+        self._write_register(EC_SOLUTION_REGISTER, i2c_address as f32)?;
         self.dev.smbus_write_byte_data(EC_TASK_REGISTER, EC_I2C)?;
 
         Ok(())
@@ -456,6 +458,20 @@ impl EcProbe {
         Ok(())
     }
 
+    /// Configures device to use dual-point calibration.
+    ///
+    /// # Example
+    /// ```
+    /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
+    /// ec.use_dual_point(true);
+    /// assert_eq!(1, ec.using_dual_point().unwrap());
+    /// ```
+    pub fn using_dual_point(&mut self) -> Result<(u8), Box<LinuxI2CError>> {
+        self._change_register(EC_CONFIG_REGISTER)?;
+        let config: u8 = self.dev.smbus_read_byte()?;
+        Ok((config >> EC_DUALPOINT_CONFIG_BIT) & 1)
+    }
+    
     pub fn _write_register(&mut self, register: u8, f_val: f32) -> Result<(), Box<LinuxI2CError>> {
         unsafe {
             let buf: [u8; 4] = mem::transmute(f_val);
