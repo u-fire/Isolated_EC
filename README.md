@@ -17,7 +17,7 @@ The board uses the [Qwiic](https://www.sparkfun.com/qwiic) Connect System for wi
 
 ##### Using it
 
-Read the [documentation](/docs/uFire_EC/) on the [specifications](/docs/uFire_EC/#characteristics), [setup](/docs/uFire_EC/#getting-started), and [use](/docs/uFire_EC/#use) of the device.
+Read the [documentation](https://ufire.co/docs/uFire_EC/) on the [specifications](https://ufire.co/docs/uFire_EC/#characteristics), [setup](https://ufire.co/docs/uFire_EC/#getting-started), and [use](https://ufire.co/docs/uFire_EC/#use) of the device.
 
 The library to use it is in the Arduino and Particle.io IDE. A [python](https://github.com/u-fire/Isolated_EC/tree/master/python/RaspberryPi) and [rust](https://crates.io/crates/ufire_ec) implementation for Raspberry Pi is available. There is also a [MicroPython](https://github.com/u-fire/Isolated_EC/tree/master/python/MicroPython) library.
 
