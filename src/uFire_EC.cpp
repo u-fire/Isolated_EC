@@ -28,10 +28,9 @@ uFire_EC::uFire_EC(uint8_t sda, uint8_t scl, uint8_t i2c_address)
 
 uFire_EC::uFire_EC(uint8_t sda, uint8_t scl)
 {
-  _address = uFire_EC;
+  _address = EC_SALINITY;
   Wire.begin(sda, scl, 100000);
 }
-
 #endif // ifndef ESP32
 
 uFire_EC::~uFire_EC()
