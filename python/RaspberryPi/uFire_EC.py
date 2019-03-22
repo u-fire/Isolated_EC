@@ -62,17 +62,16 @@ class uFire_EC(object):
         i2c = smbus.SMBus(i2c_bus)
 
 # measurements
-    def _measure(self, newTemp=None):
-        if newTemp is True:
-            self.measureTemp()
+    def _measure(self):
 
         self._send_command(EC_MEASURE_EC)
         time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
-        self.mS = self._read_register(EC_MS_REGISTER)
         self.raw = self._read_register(EC_RAW_REGISTER)
 
         if self.raw == 0:
             self.mS = float('inf')
+        else:
+            self.mS = self._read_register(EC_MS_REGISTER)
 
         if math.isinf(self.mS) is not True:
             self.PPM_500 = self.mS * 500
@@ -93,17 +92,15 @@ class uFire_EC(object):
 
         return self.mS
 
-    def measureEC(self, newTemp=None):
-        if newTemp is None:
-            return self._measure(self.usingTemperatureCompensation())
-        else:
-            return self._measure(newTemp)
+    def measureEC(self, temp=None, temp_constant=None):
+        if temp:
+            self.useTemperatureCompensation(True)
+            self.setTemp(temp)
 
-    def measureSalinity(self, newTemp=None):
-        if newTemp is None:
-            return self._measure(self.usingTemperatureCompensation())
-        else:
-            return self._measure(newTemp)
+        if temp_constant:
+            self.setTempConstant(temp_constant)
+
+        return self._measure()
 
     def measureTemp(self):
         self._send_command(EC_MEASURE_TEMP)
@@ -119,28 +116,19 @@ class uFire_EC(object):
 
 # calibration
     def calibrateProbe(self, solutionEC):
-        dualpoint = self.usingDualPoint()
-        self.useDualPoint(0)
         self._write_register(EC_SOLUTION_REGISTER, solutionEC)
         self._send_command(EC_CALIBRATE_PROBE)
         time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
-        self.useDualPoint(dualpoint)
 
     def calibrateProbeLow(self, solutionEC):
-        dualpoint = self.usingDualPoint()
-        self.useDualPoint(0)
         self._write_register(EC_SOLUTION_REGISTER, solutionEC)
         self._send_command(EC_CALIBRATE_LOW)
         time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
-        self.useDualPoint(dualpoint)
 
     def calibrateProbeHigh(self, solutionEC):
-        dualpoint = self.usingDualPoint()
-        self.useDualPoint(0)
         self._write_register(EC_SOLUTION_REGISTER, solutionEC)
         self._send_command(EC_CALIBRATE_HIGH)
         time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
-        self.useDualPoint(dualpoint)
 
     def getCalibrateOffset(self):
         return self._read_register(EC_CALIBRATE_OFFSET_REGISTER)
@@ -166,13 +154,7 @@ class uFire_EC(object):
         self._write_register(EC_CALIBRATE_READLOW_REGISTER, readLow)
         self._write_register(EC_CALIBRATE_READHIGH_REGISTER, readHigh)
 
-    def useDualPoint(self, b):
-        retval = self._read_byte(EC_CONFIG_REGISTER)
-        retval = self._bit_set(retval, EC_DUALPOINT_CONFIG_BIT, b)
-        self._write_byte(EC_CONFIG_REGISTER, retval)
-
 # temperature
-
     def setTemp(self, temp_C):
         self._write_register(EC_TEMP_REGISTER, temp_C)
         self.tempC = temp_C
@@ -196,14 +178,6 @@ class uFire_EC(object):
         retval = self._bit_set(retval, EC_TEMP_COMPENSATION_CONFIG_BIT, b)
         self._write_byte(EC_CONFIG_REGISTER, retval)
 
-    def usingTemperatureCompensation(self):
-        retval = self._read_byte(EC_CONFIG_REGISTER)
-        return (retval >> EC_TEMP_COMPENSATION_CONFIG_BIT) & 0x01
-
-    def usingDualPoint(self):
-        retval = self._read_byte(EC_CONFIG_REGISTER)
-        return (retval >> 0) & 0x01
-
 # utilities
     def getVersion(self):
         return self._read_byte(EC_VERSION_REGISTER)
@@ -219,13 +193,14 @@ class uFire_EC(object):
         self._write_register(EC_CALIBRATE_READHIGH_REGISTER, n)
         self._write_register(EC_CALIBRATE_READLOW_REGISTER, n)
         self.setTempConstant(25)
+        self.setTempCoefficient(0.019)
         self.useTemperatureCompensation(False)
-        self.useDualPoint(False)
 
     def setI2CAddress(self, i2cAddress):
-        self._write_register(EC_SOLUTION_REGISTER, float(i2cAddress))
-        self._send_command(EC_I2C)
-        self.address = int(i2cAddress)
+        if i2cAddress >= 1 and i2cAddress <= 127:
+            self._write_register(EC_SOLUTION_REGISTER, float(i2cAddress))
+            self._send_command(EC_I2C)
+            self.address = int(i2cAddress)
 
     def connected(self):
         retval = self._read_byte(EC_VERSION_REGISTER)

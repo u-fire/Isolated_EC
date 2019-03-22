@@ -100,28 +100,6 @@ void uFire_EC_BLE::startBLE() {
   plow_read_Characteristic->setCallbacks(new lowReadCallback());
   pService->addCharacteristic(plow_read_Characteristic);
 
-  // temp. comp.
-  ptc_Characteristic = pService->createCharacteristic(
-    TEMP_COMP_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
-    );
-  BLEDescriptor *tc_Descriptor = new BLEDescriptor((uint16_t)0x2901);
-  tc_Descriptor->setValue("temp. compensation");
-  ptc_Characteristic->addDescriptor(tc_Descriptor);
-  ptc_Characteristic->setCallbacks(new tcCallback());
-  pService->addCharacteristic(ptc_Characteristic);
-
-  // add dual point characteristic
-  pdp_Characteristic = pService->createCharacteristic(
-    DUAL_POINT_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
-    );
-  BLEDescriptor *dp_Descriptor = new BLEDescriptor((uint16_t)0x2901);
-  dp_Descriptor->setValue("dual point");
-  pdp_Characteristic->addDescriptor(dp_Descriptor);
-  pdp_Characteristic->setCallbacks(new dpCallback());
-  pService->addCharacteristic(pdp_Characteristic);
-
   // add version chracteristic
   pversion_Characteristic = pService->createCharacteristic(
     VERSION_UUID,
@@ -140,18 +118,31 @@ void uFire_EC_BLE::startBLE() {
   Serial.println("started BLE");
 }
 
-void uFire_EC_BLE::measureEC() {
-  String smV = String(uFire_EC::measureEC());
+float uFire_EC_BLE::measureEC() {
+  float ec = uFire_EC::measureEC();
+  String smV = String(ec);
 
   pmS_Characteristic->setValue(smV.c_str());
   pmS_Characteristic->notify();
+  return ec;
 }
 
-void uFire_EC_BLE::measureTemp() {
-  String s = String(uFire_EC::measureTemp());
+float uFire_EC_BLE::measureEC(float temp) {
+  float ec = uFire_EC::measureEC(temp);
+  String smV = String(ec);
+
+  pmS_Characteristic->setValue(smV.c_str());
+  pmS_Characteristic->notify();
+  return ec;
+}
+
+float uFire_EC_BLE::measureTemp() {
+  float temp = uFire_EC::measureTemp();
+  String s = String(temp);
 
   ptemp_Characteristic->setValue(s.c_str());
   ptemp_Characteristic->notify();
+  return temp;
 }
 
 #endif // if __has_include("BLEDevice.h")

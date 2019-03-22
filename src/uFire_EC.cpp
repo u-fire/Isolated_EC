@@ -31,18 +31,14 @@ uFire_EC::uFire_EC(uint8_t sda, uint8_t scl)
   _address = EC_SALINITY;
   Wire.begin(sda, scl, 100000);
 }
+
 #endif // ifndef ESP32
 
 uFire_EC::~uFire_EC()
 {}
 
-float uFire_EC::measureEC(bool newTemp)
+float uFire_EC::measureEC()
 {
-  if (newTemp)
-  {
-    measureTemp();
-  }
-
   _send_command(EC_MEASURE_EC);
   delay(EC_EC_MEASUREMENT_TIME);
   raw = _read_register(EC_RAW_REGISTER);
@@ -79,15 +75,19 @@ float uFire_EC::measureEC(bool newTemp)
   return mS;
 }
 
-float uFire_EC::measureEC()
+float uFire_EC::measureEC(float temp)
 {
-  return measureEC(usingTemperatureCompensation());
+  useTemperatureCompensation(true);
+  setTemp(temp);
+  return measureEC();
 }
 
-float uFire_EC::measureSalinity()
+float uFire_EC::measureEC(float temp, float temp_constant)
 {
-  measureEC(usingTemperatureCompensation());
-  return salinityPSU;
+  setTemp(temp);
+  useTemperatureCompensation(true);
+  setTempConstant(temp_constant);
+  return measureEC();
 }
 
 float uFire_EC::measureTemp()
@@ -115,35 +115,23 @@ void uFire_EC::setTemp(float temp_C)
 
 void uFire_EC::calibrateProbe(float solutionEC)
 {
-  bool dualpoint = usingDualPoint();
-
-  useDualPoint(false);
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_PROBE);
   delay(EC_EC_MEASUREMENT_TIME);
-  useDualPoint(dualpoint);
 }
 
 void uFire_EC::calibrateProbeLow(float solutionEC)
 {
-  bool dualpoint = usingDualPoint();
-
-  useDualPoint(false);
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_LOW);
   delay(EC_EC_MEASUREMENT_TIME);
-  useDualPoint(dualpoint);
 }
 
 void uFire_EC::calibrateProbeHigh(float solutionEC)
 {
-  bool dualpoint = usingDualPoint();
-
-  useDualPoint(false);
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_HIGH);
   delay(EC_EC_MEASUREMENT_TIME);
-  useDualPoint(dualpoint);
 }
 
 void uFire_EC::setDualPointCalibration(float refLow, float refHigh, float readLow, float readHigh)
@@ -196,23 +184,6 @@ void uFire_EC::useTemperatureCompensation(bool b)
   _write_byte(EC_CONFIG_REGISTER, retval);
 }
 
-void uFire_EC::useDualPoint(bool b)
-{
-  uint8_t retval;
-  uint8_t config = _read_byte(EC_CONFIG_REGISTER);
-
-  if (b)
-  {
-    retval = bitSet(config, EC_DUALPOINT_CONFIG_BIT);
-  }
-  else
-  {
-    retval = bitClear(config, EC_DUALPOINT_CONFIG_BIT);
-  }
-
-  _write_byte(EC_CONFIG_REGISTER, retval);
-}
-
 uint8_t uFire_EC::getVersion()
 {
   return _read_byte(EC_VERSION_REGISTER);
@@ -239,7 +210,6 @@ void uFire_EC::reset()
   delay(10);
   setTempCoefficient(0.019);
   delay(10);
-  useDualPoint(false);
   useTemperatureCompensation(false);
 }
 
@@ -263,22 +233,6 @@ void uFire_EC::setI2CAddress(uint8_t i2cAddress)
   _write_register(EC_SOLUTION_REGISTER, i2cAddress);
   _send_command(EC_I2C);
   _address = i2cAddress;
-}
-
-bool uFire_EC::usingTemperatureCompensation()
-{
-  uint8_t retval;
-
-  retval = _read_byte(EC_CONFIG_REGISTER);
-  return (retval >> 1)  & 0x01;
-}
-
-bool uFire_EC::usingDualPoint()
-{
-  uint8_t retval;
-
-  retval = _read_byte(EC_CONFIG_REGISTER);
-  return (retval >> 0)  & 0x01;
 }
 
 bool uFire_EC::connected()

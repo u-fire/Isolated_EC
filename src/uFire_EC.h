@@ -43,7 +43,7 @@
 #define EC_CONFIG_REGISTER 54             /*!< config register */
 #define EC_TASK_REGISTER 55               /*!< task register */
 
-#define EC_EC_MEASUREMENT_TIME 250        /*!< delay between EC measurements */
+#define EC_EC_MEASUREMENT_TIME 750        /*!< delay between EC measurements */
 #define EC_TEMP_MEASURE_TIME 750          /*!< delay for temperature measurement */
 
 #define EC_DUALPOINT_CONFIG_BIT 0         /*!< dual point config bit */
@@ -75,9 +75,9 @@ public:
               uint8_t scl);
   #endif // ifndef ESP32
   ~uFire_EC();
-  float measureEC(bool newTemp);
   float measureEC();
-  float measureSalinity();
+  float measureEC(float temp);
+  float measureEC(float temp, float temp_constant);
   float measureTemp();
   void  setTemp(float temp_C);
   void  calibrateProbe(float solutionEC);
@@ -92,10 +92,6 @@ public:
   float   getTempConstant();
   void    setTempCoefficient(float tempCoef);
   float   getTempCoefficient();
-  void    useTemperatureCompensation(bool b);
-  bool    usingTemperatureCompensation();
-  void    useDualPoint(bool b);
-  bool    usingDualPoint();
   float   getCalibrateHighReference();
   float   getCalibrateLowReference();
   float   getCalibrateHighReading();
@@ -113,6 +109,7 @@ public:
 private:
 
   uint8_t _address;
+  void    useTemperatureCompensation(bool b);
   void    _change_register(uint8_t register);
   void    _send_command(uint8_t command);
   void    _write_register(uint8_t reg,

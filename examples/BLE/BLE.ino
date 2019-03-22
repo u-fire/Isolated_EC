@@ -26,6 +26,5 @@ void setup()
 void loop()
 {
   // loop through and take continous measurements
-  ec_ble.measureEC();
-  ec_ble.measureTemp();
+    ec_ble.measureEC(ec_ble.measureTemp());
 }
