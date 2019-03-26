@@ -13,14 +13,14 @@ fn main() {
 		let mut ec = EcProbe::new("/dev/i2c-3", v[0]).unwrap();
 		try!(writeln!(io, "Config:"));
 		try!(writeln!(io, "	offset: {}", ec.get_calibrate_offset().unwrap()));
-		try!(writeln!(io, "	dual point: {}", ec.using_dual_point().unwrap()));
+		try!(writeln!(io, "	dual point:"));
 		try!(writeln!(io, "		low reference / read: {} / {}",
 		ec.get_calibrate_low_reference().unwrap(),
 		ec.get_calibrate_low_reading().unwrap()));
 		try!(writeln!(io, "		high reference / read: {} / {}",
 		ec.get_calibrate_high_reference().unwrap(),
 		ec.get_calibrate_high_reading().unwrap()));
-		try!(writeln!(io, "	temp. compensation: {}", ec.using_temperature_compensation().unwrap()));
+		try!(writeln!(io, "	temp. compensation:"));
 		try!(writeln!(io, "		temp. constant: {}", ec.get_temp_constant().unwrap()));
 		try!(writeln!(io, "		temp. coeffiecient: {}", ec.get_temp_coefficient().unwrap()));
 		try!(writeln!(io, "	version hw.fw: {}.{}", ec.get_version().unwrap(),ec.get_firmware().unwrap()));
@@ -40,10 +40,17 @@ fn main() {
 		Ok(())
 	});
 
-	shell.new_command_noargs("ec", "Measures EC", move |io, v| {
+	shell.new_command("ec", "`ec <temp C>` : Measures EC", 1, move |io, v, s| {
 		let mut ec = EcProbe::new("/dev/i2c-3", v[0]).unwrap();
-		let ms = ec.measure_ec(true).unwrap();
+		let ms = ec.measure_ec(s[0].parse().unwrap()).unwrap();
 		try!(writeln!(io, "mS: {}", ms));
+		Ok(())
+	});
+
+	shell.new_command("sal", "Measures salinity", 1, move |io, v, s| {
+		let mut ec = EcProbe::new("/dev/i2c-3", v[0]).unwrap();
+		let sal = ec.measure_salinity(s[0].parse().unwrap()).unwrap();
+		try!(writeln!(io, "PSU: {}", sal));
 		Ok(())
 	});
 
@@ -54,28 +61,10 @@ fn main() {
 		Ok(())
 	});
 
-	shell.new_command_noargs("sal", "Measures salinity", move |io, v| {
-		let mut ec = EcProbe::new("/dev/i2c-3", v[0]).unwrap();
-		let sal = ec.measure_salinity().unwrap();
-		try!(writeln!(io, "PSU: {}", sal));
-		Ok(())
-	});
-
 	shell.new_command("cal", "`cal <mS/cm>` : Calibrate the probe using a single point", 1, move |io, v, s| {
 		let mut ec = EcProbe::new("/dev/i2c-3", v[0]).unwrap();
 		ec.calibrate_single(s[0].parse().unwrap()).unwrap();
 		try!(writeln!(io, "	offset: {}", ec.get_calibrate_offset().unwrap()));
-		Ok(())
-	});
-
-	shell.new_command("tc", "`tc <1/0>` : Temperature compensation on/off", 1, move |io, v, s| {
-		let mut ec = EcProbe::new("/dev/i2c-3", v[0]).unwrap();
-		let bi:i32 = s[0].parse().unwrap();
-		let b: bool;
-		if bi == 1 {b = true;}
-		else {b = false;}
-		ec.use_temperature_compensation(b).unwrap();
-		try!(writeln!(io, "	temp. compensation: {}", ec.using_temperature_compensation().unwrap()));
 		Ok(())
 	});
 
@@ -101,17 +90,6 @@ fn main() {
 		try!(writeln!(io, "	high reference / read: {} / {}",
 		ec.get_calibrate_high_reference().unwrap(),
 		ec.get_calibrate_high_reading().unwrap()));
-		Ok(())
-	});
-
-	shell.new_command("dp", "`dp <1/0>` : Dual point on/off", 1, move |io, v, s| {
-		let mut ec = EcProbe::new("/dev/i2c-3", v[0]).unwrap();
-		let bi:i32 = s[0].parse().unwrap();
-		let b: bool;
-		if bi == 1 {b = true;}
-		else {b = false;}
-		ec.use_dual_point(b).unwrap();
-		try!(writeln!(io, "	dual point: {}", ec.using_dual_point().unwrap()));
 		Ok(())
 	});
 
@@ -150,13 +128,4 @@ fn main() {
 	});
 
     shell.run_loop(&mut ShellIO::default());
-
-    //loop {
-    //    let ms = ec.measure_ec(true).unwrap();
-    //    let temp = ec.measure_temp().unwrap();
-
-    //    println!("mS: {}", ms);
-    //    println!("C: {}", temp);
-    //    println!("");
-    //}
 }

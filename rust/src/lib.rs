@@ -43,7 +43,6 @@ const EC_FW_VERSION_REGISTER: u8 = 53;
 const EC_CONFIG_REGISTER: u8 = 54;
 const EC_TASK_REGISTER: u8 = 55;    
 
-const EC_DUALPOINT_CONFIG_BIT: u8 = 0;
 const EC_TEMP_COMPENSATION_CONFIG_BIT: u8 = 1;
 
 const EC_EC_MEASUREMENT_TIME: u64 = 750;
@@ -143,18 +142,52 @@ impl EcProbe {
     /// # Example
     /// ```
     /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
-    /// ec.measure_ec(true);
+    /// ec.measure_ec(22.1);
     /// ```
-    pub fn measure_ec(&mut self, new_temp: bool) -> Result<(f32), Box<LinuxI2CError>> {
+    pub fn measure_ec(&mut self, temp_c: f32) -> Result<(f32), Box<LinuxI2CError>> {
+	self.use_temperature_compensation(true)?;
+        self._write_register(EC_TEMP_REGISTER, temp_c)?;
         self.dev.smbus_write_byte_data(EC_TASK_REGISTER, EC_MEASURE_EC)?;
         thread::sleep(Duration::from_millis(EC_EC_MEASUREMENT_TIME));
 
-        if new_temp == true {
-            self.measure_temp()?;
-        }
         Ok(self._read_register(EC_MS_REGISTER)?)
     }
 
+    /// Starts an salinity measurement and returns the salinity in PSU.
+    ///
+    /// # Example
+    /// ```
+    /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
+    /// ec.measure_salinity(22.1);
+    /// ```
+    pub fn measure_salinity(&mut self, temp_c: f32) -> Result<(f32), Box<LinuxI2CError>> {
+        self._write_register(EC_TEMP_REGISTER, temp_c)?;
+        self.dev.smbus_write_byte_data(EC_TASK_REGISTER, EC_MEASURE_EC)?;
+        thread::sleep(Duration::from_millis(EC_EC_MEASUREMENT_TIME));
+        Ok(self._read_register(EC_PSU_REGISTER)?)
+    }
+
+    /// Configures the device to use temperature compensation or not.
+    ///
+    /// # Example
+    /// ```
+    /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
+    /// ec.use_temperature_compensation(true);
+    /// assert_eq!(1, ec.using_temperature_compensation().unwrap());
+    /// ```
+    pub fn use_temperature_compensation(&mut self, b: bool) -> Result<(), Box<LinuxI2CError>> {
+        self._change_register(EC_CONFIG_REGISTER)?;
+        let mut config: u8 = self.dev.smbus_read_byte()?;
+        thread::sleep(Duration::from_millis(10));
+        if b {
+            config |= 1 << EC_TEMP_COMPENSATION_CONFIG_BIT;
+        } else {
+            config &= !(1 << EC_TEMP_COMPENSATION_CONFIG_BIT);
+        }
+        self.dev.smbus_write_byte_data(EC_CONFIG_REGISTER, config)?;
+        thread::sleep(Duration::from_millis(10));
+        Ok(())
+   }
 
     /// Starts a raw measurement.
     ///
@@ -168,19 +201,6 @@ impl EcProbe {
         thread::sleep(Duration::from_millis(EC_EC_MEASUREMENT_TIME));
 
         Ok(self._read_register(EC_RAW_REGISTER)?)
-    }
-
-    /// Starts an salinity measurement and returns the salinity in PSU.
-    ///
-    /// # Example
-    /// ```
-    /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
-    /// ec.measure_salinity();
-    /// ```
-    pub fn measure_salinity(&mut self) -> Result<(f32), Box<LinuxI2CError>> {
-        self.dev.smbus_write_byte_data(EC_TASK_REGISTER, EC_MEASURE_EC)?;
-        thread::sleep(Duration::from_millis(EC_EC_MEASUREMENT_TIME));
-        Ok(self._read_register(EC_PSU_REGISTER)?)
     }
 
     /// Sets the temperature constant to use for compensation and saves it in the devices's EEPROM.
@@ -260,28 +280,6 @@ impl EcProbe {
         Ok(self._read_register(EC_BUFFER_REGISTER)?)
     }
 
-    /// Configures the device to use temperature compensation or not.
-    ///
-    /// # Example
-    /// ```
-    /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
-    /// ec.use_temperature_compensation(true);
-    /// assert_eq!(1, ec.using_temperature_compensation().unwrap());
-    /// ```
-    pub fn use_temperature_compensation(&mut self, b: bool) -> Result<(), Box<LinuxI2CError>> {
-        self._change_register(EC_CONFIG_REGISTER)?;
-        let mut config: u8 = self.dev.smbus_read_byte()?;
-        thread::sleep(Duration::from_millis(10));
-        if b {
-            config |= 1 << EC_TEMP_COMPENSATION_CONFIG_BIT;
-        } else {
-            config &= !(1 << EC_TEMP_COMPENSATION_CONFIG_BIT);
-        }
-        self.dev.smbus_write_byte_data(EC_CONFIG_REGISTER, config)?;
-        thread::sleep(Duration::from_millis(10));
-        Ok(())
-    }
-
     /// Returns the firmware version of the device.
     ///
     /// # Example
@@ -299,7 +297,7 @@ impl EcProbe {
     /// # Example
     /// ```
     /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
-    /// assert_eq!(0x1c, ec.get_version().unwrap());
+    /// assert_eq!(0x1, ec.get_version().unwrap());
     /// ```
     pub fn get_firmware(&mut self) -> Result<(u8), Box<LinuxI2CError>> {
         self._change_register(EC_FW_VERSION_REGISTER)?;
@@ -325,24 +323,8 @@ impl EcProbe {
         self._write_register(EC_CALIBRATE_READHIGH_REGISTER, f32::NAN)?;
         self._write_register(EC_CALIBRATE_OFFSET_REGISTER, f32::NAN)?;
         self._write_register(EC_TEMP_COMPENSATION_REGISTER, 25.0)?;
-        self.use_dual_point(false)?;
-        self.use_temperature_compensation(false)?;
-	self.set_temp_coefficient(0.019)?;
+	    self.set_temp_coefficient(0.019)?;
         Ok(())
-    }
-
-    /// Configures the device to use temperature compensation.
-    ///
-    /// # Example
-    /// ```
-    /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
-    /// ec.use_temperature_compensation(true);
-    /// assert_eq!(1, ec.using_temperature_compensation().unwrap());
-    /// ```
-    pub fn using_temperature_compensation(&mut self) -> Result<(u8), Box<LinuxI2CError>> {
-        self._change_register(EC_CONFIG_REGISTER)?;
-        let config: u8 = self.dev.smbus_read_byte()?;
-        Ok((config >> EC_TEMP_COMPENSATION_CONFIG_BIT) & 1)
     }
 
     /// Sets the I2C address of the device.
@@ -434,42 +416,6 @@ impl EcProbe {
     /// ```
     pub fn get_calibrate_low_reading(&mut self) -> Result<(f32), Box<LinuxI2CError>> {
         Ok(self._read_register(EC_CALIBRATE_READLOW_REGISTER)?)
-    }
-
-    /// Configures device to use dual-point calibration.
-    ///
-    /// # Example
-    /// ```
-    /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
-    /// ec.use_dual_point(true);
-    /// assert_eq!(1, ec.using_dual_point().unwrap());
-    /// ```
-    pub fn use_dual_point(&mut self, b: bool) -> Result<(), Box<LinuxI2CError>> {
-        self._change_register(EC_CONFIG_REGISTER)?;
-        let mut config: u8 = self.dev.smbus_read_byte()?;
-        thread::sleep(Duration::from_millis(10));
-        if b {
-            config |= 1 << EC_DUALPOINT_CONFIG_BIT;
-        } else {
-            config &= !(1 << EC_DUALPOINT_CONFIG_BIT);
-        }
-        self.dev.smbus_write_byte_data(EC_CONFIG_REGISTER, config)?;
-        thread::sleep(Duration::from_millis(10));
-        Ok(())
-    }
-
-    /// Configures device to use dual-point calibration.
-    ///
-    /// # Example
-    /// ```
-    /// let mut ec = ufire_ec::EcProbe::new("/dev/i2c-3", 0x3c).unwrap();
-    /// ec.use_dual_point(true);
-    /// assert_eq!(1, ec.using_dual_point().unwrap());
-    /// ```
-    pub fn using_dual_point(&mut self) -> Result<(u8), Box<LinuxI2CError>> {
-        self._change_register(EC_CONFIG_REGISTER)?;
-        let config: u8 = self.dev.smbus_read_byte()?;
-        Ok((config >> EC_DUALPOINT_CONFIG_BIT) & 1)
     }
     
     pub fn _write_register(&mut self, register: u8, f_val: f32) -> Result<(), Box<LinuxI2CError>> {
