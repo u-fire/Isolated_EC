@@ -115,7 +115,6 @@ void uFire_EC_BLE::startBLE() {
   pService->start();
   BLEAdvertising *pAdvertising = pServer->getAdvertising();
   pAdvertising->start();
-  Serial.println("started BLE");
 }
 
 float uFire_EC_BLE::measureEC() {
