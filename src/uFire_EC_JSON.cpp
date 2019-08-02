@@ -178,7 +178,7 @@ String uFire_EC_JSON::ec_measure(String temperature)
 
   const size_t bufferSize = JSON_OBJECT_SIZE(1) + 20;
   DynamicJsonDocument doc(bufferSize);
-  doc["ec"] = floor(ec->measureEC(temperature.toFloat() * 100.0 + 0.5) / 100.0);
+  doc["ec"] = floor(ec->measureEC(temperature.toFloat()) * 100.0 + 0.5) / 100.0;
   serializeJson(doc, output);
   return output;
 }
@@ -211,7 +211,7 @@ String uFire_EC_JSON::ec_temperature()
   String output;
   const size_t bufferSize = JSON_OBJECT_SIZE(1) + 20;
   DynamicJsonDocument doc(bufferSize);
-  doc["ect"] = ec->measureTemp();
+  doc["ect"] = floor(ec->measureTemp() * 100.0 + 0.5) / 100.0;
   serializeJson(doc, output);
   return output;
 }
