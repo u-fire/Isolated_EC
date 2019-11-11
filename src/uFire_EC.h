@@ -80,9 +80,9 @@ public:
   float measureEC(float temp, float temp_constant);
   float measureTemp();
   void  setTemp(float temp_C);
-  void  calibrateProbe(float solutionEC);
-  void  calibrateProbeLow(float solutionEC);
-  void  calibrateProbeHigh(float solutionEC);
+  float  calibrateProbe(float solutionEC);
+  float  calibrateProbeLow(float solutionEC);
+  float  calibrateProbeHigh(float solutionEC);
   void  setDualPointCalibration(float refLow,
                                 float refHigh,
                                 float readLow,

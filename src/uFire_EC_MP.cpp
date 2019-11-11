@@ -1,3 +1,4 @@
+#if !defined (ESP8266)
 #if __has_include("ArduinoJson.h")
 #include "uFire_EC_MP.h"
 #include <ArduinoJson.h>
@@ -215,4 +216,5 @@ String uFire_EC_MP::ec_temperature()
   serializeMsgPack(doc, output);
   return output;
 }
+#endif
 #endif

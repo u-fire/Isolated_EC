@@ -113,25 +113,31 @@ void uFire_EC::setTemp(float temp_C)
   tempF = ((tempC * 9) / 5) + 32;
 }
 
-void uFire_EC::calibrateProbe(float solutionEC)
+float uFire_EC::calibrateProbe(float solutionEC)
 {
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_PROBE);
   delay(EC_EC_MEASUREMENT_TIME);
+
+  return getCalibrateOffset();
 }
 
-void uFire_EC::calibrateProbeLow(float solutionEC)
+float uFire_EC::calibrateProbeLow(float solutionEC)
 {
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_LOW);
   delay(EC_EC_MEASUREMENT_TIME);
+
+  return getCalibrateLowReading();
 }
 
-void uFire_EC::calibrateProbeHigh(float solutionEC)
+float uFire_EC::calibrateProbeHigh(float solutionEC)
 {
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_HIGH);
   delay(EC_EC_MEASUREMENT_TIME);
+
+  return getCalibrateHighReading();
 }
 
 void uFire_EC::setDualPointCalibration(float refLow, float refHigh, float readLow, float readHigh)
