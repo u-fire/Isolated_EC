@@ -6,17 +6,17 @@ const float uFire_EC::tempCoefSalinity = 0.021;
 uFire_EC::uFire_EC(uint8_t i2c_address)
 {
   _address = i2c_address;
-  #ifndef ARDUINO_SAMD_VARIANT_COMPLIANCE
+  #if !defined (ARDUINO_SAMD_VARIANT_COMPLIANCE) || !defined (_VARIANT_ARDUINO_STM32_)
   Wire.begin();
-  #endif // ifndef ARDUINO_SAMD_VARIANT_COMPLIANCE
+  #endif // ifndef ARDUINO_SAMD_VARIANT_COMPLIANCE || _VARIANT_ARDUINO_STM32_
 }
 
 uFire_EC::uFire_EC()
 {
   _address = EC_SALINITY;
-  #ifndef ARDUINO_SAMD_VARIANT_COMPLIANCE
+  #if !defined (ARDUINO_SAMD_VARIANT_COMPLIANCE) || !defined (_VARIANT_ARDUINO_STM32_)
   Wire.begin();
-  #endif // ifndef ARDUINO_SAMD_VARIANT_COMPLIANCE
+  #endif // ifndef ARDUINO_SAMD_VARIANT_COMPLIANCE || _VARIANT_ARDUINO_STM32_
 }
 
 #ifdef ESP32
