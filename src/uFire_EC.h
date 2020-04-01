@@ -43,20 +43,20 @@
 #define EC_CONFIG_REGISTER 54             /*!< config register */
 #define EC_TASK_REGISTER 55               /*!< task register */
 
-#define EC_EC_MEASUREMENT_TIME 750        /*!< delay between EC measurements */
+#define EC_EC_MEASUREMENT_TIME 500        /*!< delay between EC measurements */
 #define EC_TEMP_MEASURE_TIME 750          /*!< delay for temperature measurement */
 
 #define EC_DUALPOINT_CONFIG_BIT 0         /*!< dual point config bit */
 #define EC_TEMP_COMPENSATION_CONFIG_BIT 1 /*!< temperature compensation config bit */
 
-class uFire_EC                         /*! EuFire_EC Class */
+class uFire_EC                            /*! uFire_EC Class */
 {
 public:
 
   float S;                             /*!< EC in Siemens */
   float mS;                            /*!<Salinity EC in milli-Siemens */
-  float uS;                            /*!< EC in micro-Siemens */
-  float raw;
+  long uS;                            /*!< EC in micro-Siemens */
+  long raw;
   long PPM_500;                        /*!< Parts per million using 500 as a multiplier */
   long PPM_640;                        /*!< Parts per million using 640 as a multiplier */
   long PPM_700;                        /*!< Parts per million using 700 as a multiplier */
@@ -65,28 +65,15 @@ public:
   float tempF;                         /*!< Temperature in F */
   static const float tempCoefEC;       /*!< Temperature compensation coefficient for EC measurement */
   static const float tempCoefSalinity; /*!< Temperature compensation coefficient for salinity measurement */
-  uFire_EC(uint8_t i2c_address);
-  uFire_EC();
-  #ifdef ESP32
-  uFire_EC(uint8_t sda,
-              uint8_t scl,
-              uint8_t i2c_address);
-  uFire_EC(uint8_t sda,
-              uint8_t scl);
-  #endif // ifndef ESP32
-  ~uFire_EC();
-  float measureEC();
-  float measureEC(float temp);
-  float measureEC(float temp, float temp_constant);
-  float measureTemp();
-  void  setTemp(float temp_C);
-  float  calibrateProbe(float solutionEC);
-  float  calibrateProbeLow(float solutionEC);
-  float  calibrateProbeHigh(float solutionEC);
-  void  setDualPointCalibration(float refLow,
-                                float refHigh,
-                                float readLow,
-                                float readHigh);
+
+  bool    begin(uint8_t address=EC_SALINITY, TwoWire &wirePort=Wire);
+  float   measureEC(float temp=25.0, float temp_constant=25.0);
+  float   measureTemp();
+  void    setTemp(float temp_C);
+  float   calibrateProbe(float solutionEC, float tempC=25.0);
+  float   calibrateProbeLow(float solutionEC, float tempC=25.0);
+  float   calibrateProbeHigh(float solutionEC, float tempC=25.0);
+  void    setDualPointCalibration(float refLow, float refHigh, float readLow, float readHigh);
   void    reset();
   void    setTempConstant(float b);
   float   getTempConstant();
@@ -105,10 +92,18 @@ public:
   void    writeEEPROM(uint8_t address,
                       float   value);
   float   readEEPROM(uint8_t address);
+  void    setBlocking(bool);
+  bool    getBlocking();
+  void    readData();
 
 private:
 
   uint8_t _address;
+  TwoWire *_i2cPort;
+  int16_t _ec_delay;
+  bool    _blocking = true;
+  float   _mS_to_mS25(float mS, float tempC);
+  void    _updateRegisters();
   void    useTemperatureCompensation(bool b);
   void    _change_register(uint8_t register);
   void    _send_command(uint8_t command);

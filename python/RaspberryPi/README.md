@@ -1,6 +1,6 @@
 ### Isolated EC Probe Interface for Raspberry Pi
 
-API [documentation](http://ufire.co/docs/uFire_EC/) has usage and examples for MicroPython.
+API [documentation](http://ufire.co/docs/uFire_EC/) has usage and examples.
 
 #### Running the Examples
 1. git clone https://github.com/u-fire/Isolated_EC.git --depth=1

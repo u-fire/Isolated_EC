@@ -1,5 +1,5 @@
 #######################################
-# Syntax Coloring Map For EC-Salinity
+# Syntax Coloring Map
 #######################################
 
 #######################################
@@ -11,25 +11,18 @@
 #######################################
 
 measureEC	KEYWORD2
-measureSalinity	KEYWORD2
 measureTemp	KEYWORD2
 calibrateProbe	KEYWORD2
 calibrateProbeLow	KEYWORD2
 calibrateProbeHigh	KEYWORD2
-calibrateDry	KEYWORD2
 setDualPointCalibration	KEYWORD2
 setI2CAddress	KEYWORD2
-setK	KEYWORD2
-getK	KEYWORD2
-getCalibrateDry	KEYWORD2
 reset	KEYWORD2
 setTempConstant	KEYWORD2
 getTempConstant	KEYWORD2
 setTemp	KEYWORD2
 useTemperatureCompensation	KEYWORD2
-usingTemperatureCompensation	KEYWORD2
 useDualPoint	KEYWORD2
-usingDualPoint	KEYWORD2
 getCalibrateHighReference	KEYWORD2
 getCalibrateLowReference	KEYWORD2
 getCalibrateLowReading	KEYWORD2
@@ -44,3 +37,7 @@ getVersion	KEYWORD2
 #######################################
 # Constants (LITERAL1)
 #######################################
+Class ================================== 
+uFire_EC_MP	KEYWORD1
+begin	KEYWORD2
+processMP	KEYWORD2

@@ -34,12 +34,10 @@ EC_FW_VERSION_REGISTER = 53         # firmware version register */
 EC_CONFIG_REGISTER = 54             # config register */
 EC_TASK_REGISTER = 55               # task register */
 
-EC_EC_MEASUREMENT_TIME = 750        # delay between EC measurements
+EC_EC_MEASUREMENT_TIME = 500        # delay between EC measurements
 EC_TEMP_MEASURE_TIME = 750          # delay for temperature measurement
-
 EC_TEMP_COMPENSATION_CONFIG_BIT = 1  # temperature compensation config bit
 EC_DUALPOINT_CONFIG_BIT = 0         # dual point config bit
-
 
 class uFire_EC(object):
     S = 0
@@ -55,6 +53,7 @@ class uFire_EC(object):
     address = EC_SALINITY
     tempCoefEC = 0.019
     tempCoefSalinity = 0.021
+    _blocking = True
 
     def __init__(self, address=EC_SALINITY, i2c_bus=3, **kwargs):
         global i2c
@@ -65,34 +64,13 @@ class uFire_EC(object):
     def _measure(self):
 
         self._send_command(EC_MEASURE_EC)
-        time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
-        self.raw = self._read_register(EC_RAW_REGISTER)
-
-        if self.raw == 0:
-            self.mS = float('inf')
-        else:
-            self.mS = self._read_register(EC_MS_REGISTER)
-
-        if math.isinf(self.mS) is not True:
-            self.PPM_500 = self.mS * 500
-            self.PPM_640 = self.mS * 640
-            self.PPM_700 = self.mS * 700
-            self.uS = self.mS * 1000
-            self.S = self.mS / 1000
-
-            self.salinityPSU = self._read_register(EC_SALINITY_PSU)
-        else:
-            self.mS = -1
-            self.PPM_500 = -1
-            self.PPM_640 = -1
-            self.PPM_700 = -1
-            self.uS = -1
-            self.S = -1
-            self.salinityPSU = -1
+        if self._blocking == True:
+             time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
+             self._updateRegisters()
 
         return self.mS
 
-    def measureEC(self, temp=None, temp_constant=None):
+    def measureEC(self, temp=25, temp_constant=None):
         if temp:
             self.useTemperatureCompensation(True)
             self.setTemp(temp)
@@ -100,35 +78,42 @@ class uFire_EC(object):
         if temp_constant:
             self.setTempConstant(temp_constant)
 
-        return self._measure()
+        self._measure()
+
+        return self.mS
 
     def measureTemp(self):
         self._send_command(EC_MEASURE_TEMP)
-        time.sleep(EC_TEMP_MEASURE_TIME / 1000.0)
-        self.tempC = self._read_register(EC_TEMP_REGISTER)
+        if self._blocking == True:
+             time.sleep(EC_TEMP_MEASURE_TIME / 1000.0)
+             self._updateRegisters()
 
-        if self.tempC == -127.0:
-            self.tempF = -127.0
-        else:
-            self.tempF = ((self.tempC * 9) / 5) + 32
-
+        self._updateRegisters()
         return self.tempC
 
 # calibration
-    def calibrateProbe(self, solutionEC):
+    def calibrateProbe(self, solutionEC, tempC=25):
+        solutionEC = self._mS_to_mS25(solutionEC, tempC)
         self._write_register(EC_SOLUTION_REGISTER, solutionEC)
         self._send_command(EC_CALIBRATE_PROBE)
-        time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
+        if self._blocking == True:
+             time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
 
-    def calibrateProbeLow(self, solutionEC):
+    def calibrateProbeLow(self, solutionEC, tempC=25):
+        solutionEC = self._mS_to_mS25(solutionEC, tempC)
         self._write_register(EC_SOLUTION_REGISTER, solutionEC)
         self._send_command(EC_CALIBRATE_LOW)
-        time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
+        if self._blocking == True:
+             time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
 
-    def calibrateProbeHigh(self, solutionEC):
-        self._write_register(EC_SOLUTION_REGISTER, solutionEC)
+    def calibrateProbeHigh(self, solutionEC, tempC=25):
+        solutionEC = self._mS_to_mS25(solutionEC, tempC)
+        self._write_register(EC_SOLUTION_REGISTER, float(solutionEC))
         self._send_command(EC_CALIBRATE_HIGH)
-        time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
+        if self._blocking == True:
+              time.sleep(EC_EC_MEASUREMENT_TIME / 1000.0)
+
+        return self.getCalibrateHighReading()
 
     def getCalibrateOffset(self):
         return self._read_register(EC_CALIBRATE_OFFSET_REGISTER)
@@ -155,6 +140,9 @@ class uFire_EC(object):
         self._write_register(EC_CALIBRATE_READHIGH_REGISTER, readHigh)
 
 # temperature
+    def _mS_to_mS25(self, mS, tempC):
+        return mS / (1 - (self.getTempCoefficient() * (tempC - 25)))
+
     def setTemp(self, temp_C):
         self._write_register(EC_TEMP_REGISTER, temp_C)
         self.tempC = temp_C
@@ -220,12 +208,61 @@ class uFire_EC(object):
         self._write_register(EC_BUFFER_REGISTER, float(val))
         self._send_command(EC_WRITE)
 
+    def setBlocking(self, blocking):
+        if blocking == '0':
+             self._blocking = False
+        if blocking == '1':
+             self._blocking = True
+
+    def getBlocking(self):
+        return bool(self._blocking)
+
+    def readData(self):
+        self._updateRegisters()
+        self.getCalibrateHighReading()
+        self.getCalibrateHighReference()
+        self.getCalibrateLowReading()
+        self.getCalibrateLowReference()
+        self.getCalibrateOffset()
+
     def _bit_set(self, v, index, x):
         mask = 1 << index
         v &= ~mask
         if x:
             v |= mask
         return v
+
+    def _updateRegisters(self):
+        self.raw = self._read_register(EC_RAW_REGISTER)
+
+        if self.raw == 0:
+            self.mS = float('inf')
+        else:
+            self.mS = self._read_register(EC_MS_REGISTER)
+
+        if math.isinf(self.mS) is not True:
+            self.PPM_500 = self.mS * 500
+            self.PPM_640 = self.mS * 640
+            self.PPM_700 = self.mS * 700
+            self.uS = self.mS * 1000
+            self.S = self.mS / 1000
+
+            self.salinityPSU = self._read_register(EC_SALINITY_PSU)
+        else:
+            self.mS = -1
+            self.PPM_500 = -1
+            self.PPM_640 = -1
+            self.PPM_700 = -1
+            self.uS = -1
+            self.S = -1
+            self.salinityPSU = -1
+
+        self.tempC = self._read_register(EC_TEMP_REGISTER)
+
+        if self.tempC == -127.0:
+            self.tempF = -127.0
+        else:
+            self.tempF = ((self.tempC * 9) / 5) + 32
 
     def _change_register(self, r):
         global i2c

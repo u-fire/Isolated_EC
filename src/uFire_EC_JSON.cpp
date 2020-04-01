@@ -6,6 +6,7 @@
 void uFire_EC_JSON::begin(uFire_EC *p_ec)
 {
   ec = p_ec;
+  ec->begin();
 }
 
 String uFire_EC_JSON::processJSON(String json)

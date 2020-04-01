@@ -8,11 +8,13 @@
    'reset' to reset all the configuration stored in the device
 
    Single Point Calibration:
-    cal 2.0 <to calibrate in a 2.0 mS/cm solution>
+    temp <to get the temperature, 20.1 on the following line>
+    cal 1.413 20.1 <to calibrate in a 1.413 mS/cm solution>
 
    Dual Point Calibration:
-    low 0.7 <to calibrate the low value as 0.7 mS/cm>
-    high 2.0 <to calibrate the high value as 2.0 mS/cm>
+    temp <to get the temperature for the following two commands)
+    low 0.7 20.1 <to calibrate the low value as 0.7 mS/cm>
+    high 2.0 20.1<to calibrate the high value as 2.0 mS/cm>
 
    Measure Temperature:
     temp
@@ -30,16 +32,14 @@
    Read/Write custom EEPROM data:
     read 300 <returns a float stored at address 300>
     write 300 123.4 <writes 123.4 at address 300>
+
+    For hardware version 2, firmware 3
  */
 
 #include <Arduino.h>
 #include "uFire_EC.h"
 
-#ifdef ESP32
-EC_Salinity EC(19, 23); // sda, scl
-#else // ifdef ESP32
 uFire_EC EC;
-#endif // ifdef ESP32
 
 String buffer, cmd, p1, p2;
 
@@ -59,7 +59,7 @@ void config()
   Serial.println(EC.getTempConstant());
   Serial.print("    coefficient: ");
   Serial.println(EC.getTempCoefficient(), 3);
-  Serial.print("hardware/firmware version: ");
+  Serial.print("hardware:firmware version: ");
   Serial.print(EC.getVersion(), HEX);
   Serial.print(":");
   Serial.println(EC.getFirmware(), HEX);
@@ -162,8 +162,12 @@ void raw()
 void low() {
   if (p1.length()) 
   {
+    EC.calibrateProbeLow(p1.toFloat(), p2.toFloat());
+  }else if (p2.length()) 
+  {
     EC.calibrateProbeLow(p1.toFloat());
   }
+
   Serial.print("low reference | read: "); Serial.print(EC.getCalibrateLowReference(), 2);
   Serial.print(" | "); Serial.println(EC.getCalibrateLowReading(), 2);
 }
@@ -171,14 +175,23 @@ void low() {
 void high() {
   if (p1.length()) 
   {
+    EC.calibrateProbeHigh(p1.toFloat(), p2.toFloat());
+  } else if (p2.length()) 
+  {
     EC.calibrateProbeHigh(p1.toFloat());
+
   }
+
   Serial.print("high reference | read: "); Serial.print(EC.getCalibrateHighReference(), 2);
   Serial.print(" | "); Serial.println(EC.getCalibrateHighReading(), 2);
 }
 
 void calibrate() {
-  if (p1.length()) 
+
+  if (p2.length()) 
+  {
+    EC.calibrateProbe(p1.toFloat(), p2.toFloat());
+  } else if (p1.length()) 
   {
     EC.calibrateProbe(p1.toFloat());
   }
@@ -187,7 +200,7 @@ void calibrate() {
   Serial.println(EC.getCalibrateOffset(), 5);
 }
 
-void coeffieicnet() {
+void coefficient() {
   if (p1.length()) 
   {
     EC.setTempCoefficient(p1.toFloat());
@@ -228,7 +241,7 @@ void cmd_run()
   if (cmd == "read") read();
   if (cmd == "write") write();
   if (cmd == "tds") tds();
-  if (cmd == "coef") coeffieicnet();
+  if (cmd == "coef") coefficient();
 }
 
 void cli_process()
@@ -252,6 +265,7 @@ void cli_process()
       p2 = buffer.substring(0, buffer.indexOf(" ", 0));
       p2.trim();
       cmd_run();
+
       Serial.print("> ");
       buffer = "";
       break;
@@ -271,6 +285,7 @@ void cli_process()
 void setup()
 {
   Wire.begin();
+  EC.begin();
   Serial.begin(9600);
   config();
   Serial.print("> ");

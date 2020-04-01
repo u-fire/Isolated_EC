@@ -3,26 +3,24 @@
    github.com/u-fire for feature requests, bug reports, and  questions
    questions@ufire.co to get in touch with someone
    
-   It demonstrates the minimal amount of code and setup to take a reading from 
-   a calibrated device.
+   For hardware version 2, firmware 3
  */
-
 #include <uFire_EC.h>
-
 uFire_EC ec;
 
 void setup()
 {
   Serial.begin(9600);
+  Wire.begin();
+
+  // https://ufire.co/docs/uFire_EC/api.html#begin
+  ec.begin();
 }
 
 void loop()
 {
-  ec.measureEC();
-  Serial.print("mS/cm: ");
-  Serial.println(ec.mS);
-  Serial.print("TDS: ");
-  Serial.println(ec.PPM_500);
-  Serial.println("-----");
+  // https://ufire.co/docs/uFire_EC/api.html#measuretemp
+  ec.measureTemp();
+  Serial.print((String)"Temp C|F: " + ec.tempC + " | " + ec.tempF);
   delay(1000);
 }

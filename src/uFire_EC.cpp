@@ -3,83 +3,21 @@
 const float uFire_EC::tempCoefEC       = 0.019;
 const float uFire_EC::tempCoefSalinity = 0.021;
 
-uFire_EC::uFire_EC(uint8_t i2c_address)
+bool uFire_EC::begin(uint8_t address, TwoWire &wirePort)
 {
-  _address = i2c_address;
-  #if !defined (ARDUINO_SAMD_VARIANT_COMPLIANCE) || !defined (_VARIANT_ARDUINO_STM32_)
-  Wire.begin();
-  #endif // ifndef ARDUINO_SAMD_VARIANT_COMPLIANCE || _VARIANT_ARDUINO_STM32_
-}
+  _address = address;
+  _i2cPort = &wirePort;
 
-uFire_EC::uFire_EC()
-{
-  _address = EC_SALINITY;
-  #if !defined (ARDUINO_SAMD_VARIANT_COMPLIANCE) || !defined (_VARIANT_ARDUINO_STM32_)
-  Wire.begin();
-  #endif // ifndef ARDUINO_SAMD_VARIANT_COMPLIANCE || _VARIANT_ARDUINO_STM32_
-}
-
-#ifdef ESP32
-uFire_EC::uFire_EC(uint8_t sda, uint8_t scl, uint8_t i2c_address)
-{
-  _address = i2c_address;
-  Wire.begin(sda, scl, 100000);
-}
-
-uFire_EC::uFire_EC(uint8_t sda, uint8_t scl)
-{
-  _address = EC_SALINITY;
-  Wire.begin(sda, scl, 100000);
-}
-
-#endif // ifndef ESP32
-
-uFire_EC::~uFire_EC()
-{}
-
-float uFire_EC::measureEC()
-{
-  _send_command(EC_MEASURE_EC);
-  delay(EC_EC_MEASUREMENT_TIME);
-  raw = _read_register(EC_RAW_REGISTER);
-
-  if (raw == 0.0)
+  if (getVersion() <= 2)
   {
-    mS = NAN; // make it NaN so the following statement will -1 everything
+    _ec_delay = 750;
   }
   else
   {
-    mS = _read_register(EC_MS_REGISTER);
+    _ec_delay = 500;
   }
 
-  if (mS == mS)
-  {
-    PPM_500     = mS * 500;
-    PPM_640     = mS * 640;
-    PPM_700     = mS * 700;
-    uS          = mS * 1000;
-    S           = mS / 1000;
-    salinityPSU = _read_register(EC_SALINITY_PSU);
-  }
-  else
-  {
-    mS          = -1;
-    PPM_500     = -1;
-    PPM_640     = -1;
-    PPM_700     = -1;
-    uS          = -1;
-    S           = -1;
-    salinityPSU = -1;
-  }
-
-  return mS;
-}
-
-float uFire_EC::measureEC(float temp)
-{
-  useTemperatureCompensation(true);
-  setTemp(temp);
-  return measureEC();
+  return connected();
 }
 
 float uFire_EC::measureEC(float temp, float temp_constant)
@@ -87,22 +25,21 @@ float uFire_EC::measureEC(float temp, float temp_constant)
   setTemp(temp);
   useTemperatureCompensation(true);
   setTempConstant(temp_constant);
-  return measureEC();
+  _send_command(EC_MEASURE_EC);
+  if(_blocking) delay(_ec_delay);
+
+  _updateRegisters();
+
+  return mS;
 }
 
 float uFire_EC::measureTemp()
 {
   _send_command(EC_MEASURE_TEMP);
-  delay(EC_TEMP_MEASURE_TIME);
-  tempC = _read_register(EC_TEMP_REGISTER);
-  if (tempC == -127.0)
-  {
-    tempF = -127;
-  }
-  else
-  {
-    tempF = ((tempC * 9) / 5) + 32;
-  }
+  if(_blocking) delay(EC_TEMP_MEASURE_TIME);
+
+  _updateRegisters();
+
   return tempC;
 }
 
@@ -113,29 +50,32 @@ void uFire_EC::setTemp(float temp_C)
   tempF = ((tempC * 9) / 5) + 32;
 }
 
-float uFire_EC::calibrateProbe(float solutionEC)
+float uFire_EC::calibrateProbe(float solutionEC, float tempC)
 {
+  solutionEC = _mS_to_mS25(solutionEC, tempC);
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_PROBE);
-  delay(EC_EC_MEASUREMENT_TIME);
+  if(_blocking) delay(_ec_delay);
 
   return getCalibrateOffset();
 }
 
-float uFire_EC::calibrateProbeLow(float solutionEC)
+float uFire_EC::calibrateProbeLow(float solutionEC, float tempC)
 {
+  solutionEC = _mS_to_mS25(solutionEC, tempC);
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_LOW);
-  delay(EC_EC_MEASUREMENT_TIME);
+  if(_blocking) delay(_ec_delay);
 
   return getCalibrateLowReading();
 }
 
-float uFire_EC::calibrateProbeHigh(float solutionEC)
+float uFire_EC::calibrateProbeHigh(float solutionEC, float tempC)
 {
+  solutionEC = _mS_to_mS25(solutionEC, tempC);
   _write_register(EC_SOLUTION_REGISTER, solutionEC);
   _send_command(EC_CALIBRATE_HIGH);
-  delay(EC_EC_MEASUREMENT_TIME);
+  if(_blocking) delay(_ec_delay);
 
   return getCalibrateHighReading();
 }
@@ -278,21 +218,90 @@ float uFire_EC::getTempCoefficient()
   return _read_register(EC_TEMPCOEF_REGISTER);
 }
 
+void uFire_EC::setBlocking(bool b)
+{
+   _blocking = b;
+}
+
+bool uFire_EC::getBlocking()
+{
+    return _blocking;
+}
+
+void uFire_EC::readData()
+{
+  _updateRegisters();
+  getCalibrateHighReading();
+  getCalibrateHighReference();
+  getCalibrateLowReading();
+  getCalibrateLowReference();
+  getCalibrateOffset();
+}
+
+float uFire_EC::_mS_to_mS25(float mS, float tempC)
+{
+  return mS / (1 - (getTempCoefficient() * (tempC - 25)));
+}
+
+void uFire_EC::_updateRegisters()
+{
+  raw = _read_register(EC_RAW_REGISTER);
+
+  if (raw == 0.0)
+  {
+    mS = NAN; // make it NaN so the following statement will -1 everything
+  }
+  else
+  {
+    mS = _read_register(EC_MS_REGISTER);
+  }
+
+  if (mS == mS)
+  {
+    PPM_500     = mS * 500;
+    PPM_640     = mS * 640;
+    PPM_700     = mS * 700;
+    uS          = mS * 1000;
+    S           = mS / 1000;
+    salinityPSU = _read_register(EC_SALINITY_PSU);
+  }
+  else
+  {
+    mS          = -1;
+    PPM_500     = -1;
+    PPM_640     = -1;
+    PPM_700     = -1;
+    uS          = -1;
+    S           = -1;
+    salinityPSU = -1;
+  }
+
+  tempC = _read_register(EC_TEMP_REGISTER);
+  if (tempC == -127.0)
+  {
+    tempF = -127;
+  }
+  else
+  {
+    tempF = ((tempC * 9) / 5) + 32;
+  }
+}
+
 void uFire_EC::_change_register(uint8_t r)
 {
-  Wire.beginTransmission(_address);
-  Wire.write(r);
-  Wire.endTransmission();
-  delay(10);
+  _i2cPort->beginTransmission(_address);
+  _i2cPort->write(r);
+  _i2cPort->endTransmission();
+  //delay(10);
 }
 
 void uFire_EC::_send_command(uint8_t command)
 {
-  Wire.beginTransmission(_address);
-  Wire.write(EC_TASK_REGISTER);
-  Wire.write(command);
-  Wire.endTransmission();
-  delay(10);
+  _i2cPort->beginTransmission(_address);
+  _i2cPort->write(EC_TASK_REGISTER);
+  _i2cPort->write(command);
+  _i2cPort->endTransmission();
+  //delay(10);
 }
 
 void uFire_EC::_write_register(uint8_t reg, float f)
@@ -305,10 +314,10 @@ void uFire_EC::_write_register(uint8_t reg, float f)
   b[2] = *((uint8_t *)&f_val + 1);
   b[3] = *((uint8_t *)&f_val + 2);
   b[4] = *((uint8_t *)&f_val + 3);
-  Wire.beginTransmission(_address);
-  Wire.write(b, 5);
-  Wire.endTransmission();
-  delay(10);
+  _i2cPort->beginTransmission(_address);
+  _i2cPort->write(b, 5);
+  _i2cPort->endTransmission();
+  //delay(10);
 }
 
 float uFire_EC::_read_register(uint8_t reg)
@@ -316,15 +325,15 @@ float uFire_EC::_read_register(uint8_t reg)
   float retval;
 
   _change_register(reg);
-  Wire.requestFrom(_address, (uint8_t)1);
-  *((uint8_t *)&retval) = Wire.read();
-  Wire.requestFrom(_address, (uint8_t)1);
-  *((uint8_t *)&retval + 1) = Wire.read();
-  Wire.requestFrom(_address, (uint8_t)1);
-  *((uint8_t *)&retval + 2) = Wire.read();
-  Wire.requestFrom(_address, (uint8_t)1);
-  *((uint8_t *)&retval + 3) = Wire.read();
-  delay(10);
+  _i2cPort->requestFrom(_address, (uint8_t)1);
+  *((uint8_t *)&retval) = _i2cPort->read();
+  _i2cPort->requestFrom(_address, (uint8_t)1);
+  *((uint8_t *)&retval + 1) = _i2cPort->read();
+  _i2cPort->requestFrom(_address, (uint8_t)1);
+  *((uint8_t *)&retval + 2) = _i2cPort->read();
+  _i2cPort->requestFrom(_address, (uint8_t)1);
+  *((uint8_t *)&retval + 3) = _i2cPort->read();
+  //delay(10);
   return retval;
 }
 
@@ -334,10 +343,10 @@ void uFire_EC::_write_byte(uint8_t reg, uint8_t val)
 
   b[0] = reg;
   b[1] = val;
-  Wire.beginTransmission(_address);
-  Wire.write(b, 2);
-  Wire.endTransmission();
-  delay(10);
+  _i2cPort->beginTransmission(_address);
+  _i2cPort->write(b, 2);
+  _i2cPort->endTransmission();
+  //delay(10);
 }
 
 uint8_t uFire_EC::_read_byte(uint8_t reg)
@@ -345,8 +354,8 @@ uint8_t uFire_EC::_read_byte(uint8_t reg)
   uint8_t retval;
 
   _change_register(reg);
-  Wire.requestFrom(_address, (uint8_t)1);
-  retval = Wire.read();
-  delay(10);
+  _i2cPort->requestFrom(_address, (uint8_t)1);
+  retval = _i2cPort->read();
+  //delay(10);
   return retval;
 }

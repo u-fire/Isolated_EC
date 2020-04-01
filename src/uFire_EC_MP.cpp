@@ -6,6 +6,7 @@
 void uFire_EC_MP::begin(uFire_EC *p_ec)
 {
   ec = p_ec;
+  ec->begin();
 }
 
 String uFire_EC_MP::processMP(String rx_string)
@@ -101,7 +102,7 @@ String uFire_EC_MP::ec_high_ref(String parameter)
 
   if (parameter.length())
   {
-    ec->calibrateProbeHigh(parameter.toFloat());
+    ec->calibrateProbeHigh(parameter.toFloat(), ec->measureTemp());
   }
 
   const size_t bufferSize = JSON_OBJECT_SIZE(1) + 20;
@@ -140,7 +141,7 @@ String uFire_EC_MP::ec_low_ref(String parameter)
 
   if (parameter.length())
   {
-    ec->calibrateProbeLow(parameter.toFloat());
+    ec->calibrateProbeLow(parameter.toFloat(), ec->measureTemp());
   }
 
   const size_t bufferSize = JSON_OBJECT_SIZE(1) + 20;
@@ -190,7 +191,7 @@ String uFire_EC_MP::ec_offset(String parameter)
 
   if (parameter.length())
   {
-    ec->calibrateProbe(parameter.toFloat());
+    ec->calibrateProbe(parameter.toFloat(), ec->measureTemp());
   }
 
   const size_t bufferSize = JSON_OBJECT_SIZE(1) + 20;
