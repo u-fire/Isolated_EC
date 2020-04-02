@@ -1,5 +1,5 @@
 {
-  "name": "uFire Isolated EC Probe Interface",
+  "name": "Isolated EC Probe Interface",
   "keywords": "EC, Conductivity, hydroponics, salinity, ppt, psu, tds, ppm, galvanic, isolation",
   "description": "Measure Electrical Conductivity, Total Dissolved Solids, and Salinity",
   "repository": {
