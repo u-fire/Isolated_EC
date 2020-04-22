@@ -7,15 +7,7 @@ bool uFire_EC::begin(uint8_t address, TwoWire &wirePort)
 {
   _address = address;
   _i2cPort = &wirePort;
-
-  if (getVersion() <= 2)
-  {
-    _ec_delay = 750;
-  }
-  else
-  {
-    _ec_delay = 500;
-  }
+  _ec_delay = 750;
 
   return connected();
 }
