@@ -4,10 +4,10 @@ from uFire_EC import uFire_EC
 # https://ufire.co/docs/uFire_EC/#raspberry-pi
 
 # For Raspberry Pi 3, 3 indicates the I2C-GPIO port
-ec = uFire_EC(3)
+# on Raspberry Pi 3, this is always 3 after following the above link's instruction
+# on Raspberry Pi 4, it can't be determined ahead of time
 
-# For Raspberry Pi 4, 7 indicates the I2C-GPIO port
-#ec = uFire_EC(7)
+ec = uFire_EC(i2c_bus=3)
 
 ec.measureEC()
 print("mS: " + str(ec.mS))

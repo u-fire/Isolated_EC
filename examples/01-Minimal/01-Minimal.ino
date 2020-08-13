@@ -21,6 +21,6 @@ void setup()
 void loop()
 {
   // https://ufire.co/docs/uFire_EC/api.html#measureec
-  Serial.print((String) "mS/cm: " + ec.measureEC());
+  Serial.println((String) "mS/cm: " + ec.measureEC());
   delay(1000);
 }
