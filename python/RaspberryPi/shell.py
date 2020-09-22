@@ -57,17 +57,17 @@ class ECShell(cmd.Cmd):
 
         print("mS: " + str(ec.mS))
 
-    def do_low(self, low_reference_mS):
-        """returns or sets the low reference/reading values\nparameters\n\tlow reference solution in mS"""
+    def do_low(self, low_reference_mS, tempC):
+        """returns or sets the low reference/reading values\nparameters\n\tlow reference solution in mS\n\tsolution temperature"""
         if low_reference_mS:
-            ec.calibrateProbeLow(float(low_reference_mS))
+            ec.calibrateProbeLow(float(low_reference_mS), float(tempC))
         print("\tlow reference / read: " + str(ec.getCalibrateLowReference()
                                                ) + " / " + str(ec.getCalibrateLowReading()))
 
-    def do_high(self, high_reference_mS):
-        """returns or sets the high referencen/reading values\nparameters\n\thigh reference solution in mS"""
+    def do_high(self, high_reference_mS, tempC):
+        """returns or sets the high referencen/reading values\nparameters\n\thigh reference solution in mS\n\tsolution temperature"""
         if high_reference_mS:
-            ec.calibrateProbeHigh(float(high_reference_mS))
+            ec.calibrateProbeHigh(float(high_reference_mS, float(tempC)))
         print("\thigh reference / reading: " + str(ec.getCalibrateHighReference()
                                                    ) + " / " + str(ec.getCalibrateHighReading()))
 
